@@ -8,7 +8,7 @@
 //  which is included in the file license.txt, found at the root
 //  of the RDKit source tree.
 //
-#include <RDBoost/test.h>
+#include <RDGeneral/test.h>
 #include "UniformGrid3D.h"
 #include <DataStructs/DiscreteValueVect.h>
 #include "point.h"
@@ -19,7 +19,7 @@
 #include <sstream>
 #include <fstream>
 #include <ios>
-#include <stdlib.h>
+#include <cstdlib>
 
 using namespace RDGeom;
 using namespace RDKit;

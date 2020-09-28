@@ -8,7 +8,7 @@
 //  which is included in the file license.txt, found at the root
 //  of the RDKit source tree.
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #pragma once
 #include <map>
 #include <algorithm>
@@ -56,5 +56,5 @@ class RDKIT_FMCS_EXPORT SeedSet {  // sorted by amount of bonds
     return val;
   }
 };
-}
-}
+}  // namespace FMCS
+}  // namespace RDKit

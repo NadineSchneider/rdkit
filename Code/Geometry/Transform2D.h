@@ -7,7 +7,7 @@
 //  which is included in the file license.txt, found at the root
 //  of the RDKit source tree.
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef __RD_TRANSFORM2D_H__
 #define __RD_TRANSFORM2D_H__
 
@@ -18,7 +18,8 @@ namespace RDGeom {
 class Point2D;
 const unsigned int DIM_2D = 3;
 
-class RDKIT_RDGEOMETRYLIB_EXPORT Transform2D : public RDNumeric::SquareMatrix<double> {
+class RDKIT_RDGEOMETRYLIB_EXPORT Transform2D
+    : public RDNumeric::SquareMatrix<double> {
  public:
   //! \brief Constructor
   /*!
@@ -49,9 +50,9 @@ class RDKIT_RDGEOMETRYLIB_EXPORT Transform2D : public RDNumeric::SquareMatrix<do
 
   void SetTranslation(const Point2D &pt);
 
-  /*! \brief Set the tranform so that the specified points are aligned
+  /*! \brief Set the transform so that the specified points are aligned
    *
-   * The resulting tranformation will align pt1 with ref1, and rotation
+   * The resulting transformation will align pt1 with ref1, and rotation
    * pt2 such that the line betweem (pt1, pt2) will align with
    * with the line (ref1, ref2)
    */
@@ -63,13 +64,13 @@ class RDKIT_RDGEOMETRYLIB_EXPORT Transform2D : public RDNumeric::SquareMatrix<do
    *
    * ARGUMENTS:
    *   - pt : point about which to rotate
-   *   - angle : the angle byt which to rotate
+   *   - angle : the angle by which to rotate, in radians
    */
   void SetTransform(const Point2D &pt, double angle);
 
  private:
 };
-}
+}  // namespace RDGeom
 
 /*! \brief Combine two transforms and return the results as a new transform
  *
@@ -78,7 +79,7 @@ class RDKIT_RDGEOMETRYLIB_EXPORT Transform2D : public RDNumeric::SquareMatrix<do
  * The resulting transform t3 has the folliwng effect
  *  t3(point) = t1(t2(point))
  */
-RDKIT_RDGEOMETRYLIB_EXPORT RDGeom::Transform2D operator*(const RDGeom::Transform2D &t1,
-                              const RDGeom::Transform2D &t2);
+RDKIT_RDGEOMETRYLIB_EXPORT RDGeom::Transform2D operator*(
+    const RDGeom::Transform2D &t1, const RDGeom::Transform2D &t2);
 
 #endif

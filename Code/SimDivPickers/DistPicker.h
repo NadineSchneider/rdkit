@@ -7,7 +7,7 @@
 //  which is included in the file license.txt, found at the root
 //  of the RDKit source tree.
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef _RD_DISTPICKER_H
 #define _RD_DISTPICKER_H
 
@@ -28,7 +28,9 @@ namespace RDPickers {
  *    if (i > j) : distMat[i*(i-1)/2 + j]
  *    if (j < i) : distMat[j*(j-1)/2 + i]
  */
-RDKIT_SIMDIVPICKERS_EXPORT double getDistFromLTM(const double *distMat, unsigned int i, unsigned int j);
+RDKIT_SIMDIVPICKERS_EXPORT double getDistFromLTM(const double *distMat,
+                                                 unsigned int i,
+                                                 unsigned int j);
 
 /*! \brief Abstract base class to do perform item picking (typically molecules)
  *using a
@@ -37,7 +39,7 @@ RDKIT_SIMDIVPICKERS_EXPORT double getDistFromLTM(const double *distMat, unsigned
  *  This class should never be instantiated by itself. One of the child classes
  *need to be
  *  used. The picking algorithm itself is missing here and only the child
- *calsses implement that
+ *classes implement that
  *  This class contains a pointer to a distance matrix, but it is not
  *responsible for cleaning it up
  */
@@ -59,7 +61,7 @@ class RDKIT_SIMDIVPICKERS_EXPORT DistPicker {
    *that only the
    *              lower triangle elements of the matrix are supplied in a 1D
    *array
-   *    \param poolSize - the size of teh pool to pick the items from. It is
+   *    \param poolSize - the size of the pool to pick the items from. It is
    *assumed that the
    *              distance matrix above contains the right number of elements;
    *i.e.
@@ -71,6 +73,20 @@ class RDKIT_SIMDIVPICKERS_EXPORT DistPicker {
   virtual RDKit::INT_VECT pick(const double *distMat, unsigned int poolSize,
                                unsigned int pickSize) const = 0;
 };
+
+namespace {
+class distmatFunctor {
+ public:
+  distmatFunctor(const double *distMat) : dp_distMat(distMat){};
+  double operator()(unsigned int i, unsigned int j) {
+    return getDistFromLTM(this->dp_distMat, i, j);
+  }
+
+ private:
+  const double *dp_distMat;
 };
+}  // namespace
+
+};  // namespace RDPickers
 
 #endif

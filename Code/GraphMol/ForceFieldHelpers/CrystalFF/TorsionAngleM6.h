@@ -9,7 +9,7 @@
 //  which is included in the file license.txt, found at the root
 //  of the RDKit source tree.
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef RD_TORSIONANGLEM6_H
 #define RD_TORSIONANGLEM6_H
 
@@ -24,16 +24,17 @@ class Point3D;
 namespace ForceFields {
 class ForceField;
 class ForceFieldContrib;
-}
+}  // namespace ForceFields
 
 namespace ForceFields {
 namespace CrystalFF {
 
 //! the torsion term for multiplicity m = 1 - 6
-class RDKIT_FORCEFIELDHELPERS_EXPORT TorsionAngleContribM6 : public ForceFields::ForceFieldContrib {
+class RDKIT_FORCEFIELDHELPERS_EXPORT TorsionAngleContribM6
+    : public ForceFields::ForceFieldContrib {
  public:
   TorsionAngleContribM6()
-      : d_at1Idx(-1), d_at2Idx(-1), d_at3Idx(-1), d_at4Idx(-1){};
+       {};
   //! Constructor
   /*!
    The torsion is between atom1 - atom2 - atom3 - atom4
@@ -58,14 +59,15 @@ class RDKIT_FORCEFIELDHELPERS_EXPORT TorsionAngleContribM6 : public ForceFields:
   };
 
  private:
-  int d_at1Idx, d_at2Idx, d_at3Idx, d_at4Idx;
+  int d_at1Idx{-1}, d_at2Idx{-1}, d_at3Idx{-1}, d_at4Idx{-1};
   std::vector<double> d_V;
   std::vector<int> d_sign;
 };
 
 //! calculates and returns the torsional energy
-RDKIT_FORCEFIELDHELPERS_EXPORT double calcTorsionEnergyM6(const std::vector<double> &V,
-                           const std::vector<int> &signs, const double cosPhi);
-}
-}
+RDKIT_FORCEFIELDHELPERS_EXPORT double calcTorsionEnergyM6(
+    const std::vector<double> &V, const std::vector<int> &signs,
+    const double cosPhi);
+}  // namespace CrystalFF
+}  // namespace ForceFields
 #endif

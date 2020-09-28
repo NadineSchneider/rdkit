@@ -29,7 +29,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef RDKIT_H_PSQL
 #define RDKIT_H_PSQL
 
@@ -103,7 +103,7 @@ char *makeMolBlob(CROMol data, int *len);
 CROMol parseMolText(char *data, bool asSmarts, bool warnOnFail, bool asQuery);
 CROMol parseMolCTAB(char *data, bool keepConformer, bool warnOnFail,
                     bool asQuery);
-char *makeMolText(CROMol data, int *len, bool asSmarts);
+char *makeMolText(CROMol data, int *len, bool asSmarts, bool cxSmiles);
 char *makeCtabText(CROMol data, int *len, bool createDepictionIfMissing);
 bool isValidSmiles(char *data);
 bool isValidSmarts(char *data);
@@ -181,7 +181,7 @@ double calcBitmapTanimotoSml(CBfp a, CBfp b);
 double calcBitmapDiceSml(CBfp a, CBfp b);
 double calcBitmapTverskySml(CBfp a, CBfp b, float ca, float cb);
 
-/* SparseIntVect<boost::int32_t> */
+/* SparseIntVect<std::int32_t> */
 typedef void *CSfp;
 void freeCSfp(CSfp data);
 
@@ -262,6 +262,8 @@ CChemicalReaction parseChemReactCTAB(char *data, bool warnOnFail);
 char *makeChemReactBlob(CChemicalReaction data, int *len);
 char *makeChemReactText(CChemicalReaction data, int *len, bool asSmarts);
 char *makeCTABChemReact(CChemicalReaction data, int *len);
+char *ReactionGetSVG(CChemicalReaction i, unsigned int w, unsigned int h,
+                     bool highlightByReactant, const char *params);
 
 int ChemReactNumReactants(CChemicalReaction rxn);
 int ChemReactNumProducts(CChemicalReaction rxn);
@@ -277,6 +279,7 @@ CBfp makeReactionBFP(CChemicalReaction data, int size, int fpType);
 CSfp makeReactionDifferenceSFP(CChemicalReaction data, int size, int fpType);
 
 char *computeMolHash(CROMol data, int *len);
+char *computeNMMolHash(CROMol data, const char *which);
 
 char *findMCSsmiles(char *smiles, char *params);
 void *addMol2list(void *lst, Mol *mol);

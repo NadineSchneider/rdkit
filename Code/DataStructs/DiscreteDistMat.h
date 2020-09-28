@@ -7,7 +7,7 @@
 //  which is included in the file license.txt, found at the root
 //  of the RDKit source tree.
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef __RD_DISCRETEDISTMAT_H__
 #define __RD_DISCRETEDISTMAT_H__
 #include "DiscreteValueVect.h"
@@ -26,5 +26,5 @@ class RDKIT_DATASTRUCTS_EXPORT DiscreteDistMat {
   unsigned int d_fourBitTab[256 * 256];
 };
 extern DiscreteDistMat *getDiscreteDistMat();
-}
+}  // namespace RDKit
 #endif

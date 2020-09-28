@@ -10,7 +10,7 @@
 // This is a concrete class derived from MolDraw2D that uses RDKit to draw a
 // molecule into a wxDC
 
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef MOLDRAW2DWX_H
 #define MOLDRAW2DWX_H
 
@@ -103,5 +103,5 @@ class RDKIT_MOLDRAW2D_EXPORT MolDraw2Dwx : public MolDraw2D {
  private:
   wxDC &m_dc;
 };
-}
+}  // namespace RDKit
 #endif  // MOLDRAW2DWX_H

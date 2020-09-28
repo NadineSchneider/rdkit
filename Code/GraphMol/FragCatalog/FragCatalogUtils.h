@@ -7,7 +7,7 @@
 //  which is included in the file license.txt, found at the root
 //  of the RDKit source tree.
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef _RD_FRAG_CATALOG_UTILS_H_
 #define _RD_FRAG_CATALOG_UTILS_H_
 
@@ -23,7 +23,8 @@ namespace RDKit {
 // each functional groups is read in as a molecule with queryatoms and
 // querybonds
 RDKIT_FRAGCATALOG_EXPORT MOL_SPTR_VECT readFuncGroups(std::string fileName);
-RDKIT_FRAGCATALOG_EXPORT MOL_SPTR_VECT readFuncGroups(std::istream &inStream, int nToRead = -1);
+RDKIT_FRAGCATALOG_EXPORT MOL_SPTR_VECT readFuncGroups(std::istream &inStream,
+                                                      int nToRead = -1);
 
 // REVIEW: should this return a vector of pairs or a map?
 // mark the functional groups of interest on the molecule
@@ -32,29 +33,30 @@ RDKIT_FRAGCATALOG_EXPORT MOL_SPTR_VECT readFuncGroups(std::istream &inStream, in
 //    fid - the functional groups in the list maintained in params
 // ARGUMENTS:
 //  mol - molecule of interest
-//  params - fragment catalog paramter object (contains a list of functional
+//  params - fragment catalog parameter object (contains a list of functional
 //             groups of interest
 //  fgBonds - container for bondIds in mol that are part of the functional
 //  groups
 //            the connection bond is included. these need to be chopped from
 //            the molecule later
 
-RDKIT_FRAGCATALOG_EXPORT MatchVectType findFuncGroupsOnMol(const ROMol &mol, const FragCatParams *params,
-                                  INT_VECT &fgBonds);
+RDKIT_FRAGCATALOG_EXPORT MatchVectType findFuncGroupsOnMol(
+    const ROMol &mol, const FragCatParams *params, INT_VECT &fgBonds);
 
 // This functions is called before either adding the fragments from a molecule
-// to a fragment catalog or generating the fincgerprint for this molecule
+// to a fragment catalog or generating the fingerprint for this molecule
 // using a fragment catalog. These are the things this function does
 // - recognize the function groups (and their location) on the molecule
 // - chop these functional groups of the molecule to create a core molecule
 //   "coreMol"
-// - map the function group locations onto this "coreMol" (bacause the atom ids
+// - map the function group locations onto this "coreMol" (because the atom ids
 //   on coreMol are different from the original molecule
 // - return coreMol to the caller of this function and the enter the atom ids to
 // func
 //   group ids mapping into aToFmap argument
-RDKIT_FRAGCATALOG_EXPORT ROMol *prepareMol(const ROMol &mol, const FragCatParams *fparams,
-                  MatchVectType &aToFmap);
-}
+RDKIT_FRAGCATALOG_EXPORT ROMol *prepareMol(const ROMol &mol,
+                                           const FragCatParams *fparams,
+                                           MatchVectType &aToFmap);
+}  // namespace RDKit
 
 #endif

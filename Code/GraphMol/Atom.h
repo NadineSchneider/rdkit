@@ -12,7 +12,7 @@
   \brief Defines the Atom class and associated typedefs
 
 */
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef _RD_ATOM_H
 #define _RD_ATOM_H
 
@@ -103,6 +103,7 @@ class RDKIT_GRAPHMOL_EXPORT Atom : public RDProps {
   // PeriodicTable)
   explicit Atom(const std::string &what);
   Atom(const Atom &other);
+  Atom &operator=(const Atom &other);
   virtual ~Atom();
 
   //! makes a copy of this Atom and returns a pointer to it.
@@ -119,7 +120,10 @@ class RDKIT_GRAPHMOL_EXPORT Atom : public RDProps {
   //! returns our symbol (determined by our atomic number)
   std::string getSymbol() const;
 
-  //! returns a reference to the ROMol that owns this Atom
+  //! returns whether or not this instance belongs to a molecule
+  bool hasOwningMol() const { return dp_mol != nullptr; };
+
+  //! returns a reference to the ROMol that owns this instance
   ROMol &getOwningMol() const {
     PRECONDITION(dp_mol, "no owner");
     return *dp_mol;
@@ -209,9 +213,9 @@ class RDKIT_GRAPHMOL_EXPORT Atom : public RDProps {
   //! returns the \c noImplicit flag
   bool getNoImplicit() const { return df_noImplicit; };
 
-  //! sets our number of explict Hs
+  //! sets our number of explicit Hs
   void setNumExplicitHs(unsigned int what) { d_numExplicitHs = what; };
-  //! returns our number of explict Hs
+  //! returns our number of explicit Hs
   unsigned int getNumExplicitHs() const { return d_numExplicitHs; };
 
   //! sets our \c isAromatic flag, indicating whether or not we are aromatic
@@ -327,7 +331,7 @@ class RDKIT_GRAPHMOL_EXPORT Atom : public RDProps {
       - requires an owning molecule
 
   */
-  int getPerturbationOrder(INT_LIST probe) const;
+  int getPerturbationOrder(const INT_LIST &probe) const;
 
   //! calculates any of our lazy \c properties
   /*!
@@ -385,23 +389,24 @@ class RDKIT_GRAPHMOL_EXPORT Atom : public RDProps {
 
   bool df_isAromatic;
   bool df_noImplicit;
-  boost::uint8_t d_numExplicitHs;
-  boost::int8_t d_formalCharge;
-  boost::uint8_t d_atomicNum;
+  std::uint8_t d_numExplicitHs;
+  std::int8_t d_formalCharge;
+  std::uint8_t d_atomicNum;
   // NOTE that these cannot be signed, they are calculated using
   // a lazy scheme and are initialized to -1 to indicate that the
   // calculation has not yet been done.
-  boost::int8_t d_implicitValence, d_explicitValence;
-  boost::uint8_t d_numRadicalElectrons;
-  boost::uint8_t d_chiralTag;
-  boost::uint8_t d_hybrid;
+  std::int8_t d_implicitValence, d_explicitValence;
+  std::uint8_t d_numRadicalElectrons;
+  std::uint8_t d_chiralTag;
+  std::uint8_t d_hybrid;
 
-  boost::uint16_t d_isotope;
+  std::uint16_t d_isotope;
   atomindex_t d_index;
 
   ROMol *dp_mol;
   AtomMonomerInfo *dp_monomerInfo;
   void initAtom();
+  void initFromOther(const Atom &other);
 };
 
 //! Set the atom's MDL integer RLabel
@@ -422,10 +427,16 @@ RDKIT_GRAPHMOL_EXPORT std::string getAtomValue(const Atom *atom);
 
 //! Sets the supplemental label that will follow the atom when writing
 //   smiles strings.
-RDKIT_GRAPHMOL_EXPORT void setSupplementalSmilesLabel(Atom *atom, const std::string &label);
+RDKIT_GRAPHMOL_EXPORT void setSupplementalSmilesLabel(Atom *atom,
+                                                      const std::string &label);
 RDKIT_GRAPHMOL_EXPORT std::string getSupplementalSmilesLabel(const Atom *atom);
-};
+};  // namespace RDKit
 //! allows Atom objects to be dumped to streams
-RDKIT_GRAPHMOL_EXPORT std::ostream &operator<<(std::ostream &target, const RDKit::Atom &at);
+RDKIT_GRAPHMOL_EXPORT std::ostream &operator<<(std::ostream &target,
+                                               const RDKit::Atom &at);
 
+namespace RDKit {
+//! returns whether or not the atom is to the left of C
+RDKIT_GRAPHMOL_EXPORT bool isEarlyAtom(int atomicNum);
+}  // namespace RDKit
 #endif

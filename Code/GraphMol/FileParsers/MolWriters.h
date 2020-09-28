@@ -8,7 +8,7 @@
 //  of the RDKit source tree.
 //
 
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef _RD_MOLWRITERS_H_
 #define _RD_MOLWRITERS_H_
 
@@ -90,12 +90,11 @@ class RDKIT_FILEPARSERS_EXPORT SmilesWriter : public MolWriter {
   //! \brief close our stream (the writer cannot be used again)
   void close() {
     flush();
-    std::ostream *tmp_ostream = dp_ostream;
-    dp_ostream = NULL;
     if (df_owner) {
+      delete dp_ostream;
       df_owner = false;
-      delete tmp_ostream;
     }
+    dp_ostream = nullptr;
   };
 
   //! \brief get the number of molecules written so far
@@ -146,7 +145,7 @@ class RDKIT_FILEPARSERS_EXPORT SDWriter : public MolWriter {
   //! \brief return the text that would be written to the file
   static std::string getText(const ROMol &mol, int confId = defaultConfId,
                              bool kekulize = true, bool force_V3000 = false,
-                             int molid = -1, STR_VECT *propNames = NULL);
+                             int molid = -1, STR_VECT *propNames = nullptr);
 
   //! \brief write a new molecule to the file
   void write(const ROMol &mol, int confId = defaultConfId);
@@ -167,12 +166,11 @@ class RDKIT_FILEPARSERS_EXPORT SDWriter : public MolWriter {
   //! \brief close our stream (the writer cannot be used again)
   void close() {
     flush();
-    std::ostream *tmp_ostream = dp_ostream;
-    dp_ostream = NULL;
     if (df_owner) {
+      delete dp_ostream;
       df_owner = false;
-      delete tmp_ostream;
     }
+    dp_ostream = nullptr;
   };
 
   //! \brief get the number of molecules written so far
@@ -236,13 +234,16 @@ class RDKIT_FILEPARSERS_EXPORT TDTWriter : public MolWriter {
 
   //! \brief close our stream (the writer cannot be used again)
   void close() {
-    flush();
-    std::ostream *tmp_ostream = dp_ostream;
-    dp_ostream = NULL;
-    if (df_owner) {
-      df_owner = false;
-      delete tmp_ostream;
+    // if we've written any mols, finish with a "|" line
+    if (dp_ostream && d_molid > 0) {
+      *dp_ostream << "|\n";
     }
+    flush();
+    if (df_owner) {
+      delete dp_ostream;
+      df_owner = false;
+    }
+    dp_ostream = nullptr;
   };
 
   //! \brief get the number of molecules written so far
@@ -300,12 +301,11 @@ class RDKIT_FILEPARSERS_EXPORT PDBWriter : public MolWriter {
   //! \brief close our stream (the writer cannot be used again)
   void close() {
     flush();
-    std::ostream *tmp_ostream = dp_ostream;
-    dp_ostream = NULL;
     if (df_owner) {
+      delete dp_ostream;
       df_owner = false;
-      delete tmp_ostream;
     }
+    dp_ostream = nullptr;
   };
 
   //! \brief get the number of molecules written so far
@@ -317,6 +317,6 @@ class RDKIT_FILEPARSERS_EXPORT PDBWriter : public MolWriter {
   unsigned int d_count;
   bool df_owner;
 };
-}
+}  // namespace RDKit
 
 #endif

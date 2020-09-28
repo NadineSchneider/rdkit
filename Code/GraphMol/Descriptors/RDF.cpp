@@ -36,7 +36,7 @@
 #include "RDF.h"
 #include "MolData3Ddescriptors.h"
 
-#include <math.h>
+#include <cmath>
 
 namespace RDKit {
 namespace Descriptors {
@@ -64,7 +64,6 @@ void getRDFDesc(double* DM, const ROMol& mol, const Conformer& conf,
   // if (!conf.is3D()) return reserror;
 
   int numAtoms = conf.getNumAtoms();
-  int confId = conf.getId();
 
   std::vector<double> R = getG(30);
   std::vector<double> R1(30);
@@ -83,7 +82,7 @@ void getRDFDesc(double* DM, const ROMol& mol, const Conformer& conf,
   std::vector<double> IState = prepareIState(mol);
 
   double p;
-  for (int i = 0; i < R.size(); i++) {
+  for (size_t i = 0; i < R.size(); i++) {
     double res1 = 0.0;
     double res2 = 0.0;
     double res3 = 0.0;
@@ -104,13 +103,13 @@ void getRDFDesc(double* DM, const ROMol& mol, const Conformer& conf,
         res7 += IState[j] * IState[k] * p;                          // "s"
       }
     }
-    R1[i] = round(1000 * res1) / 1000;
-    R2[i] = round(1000 * res2) / 1000;
-    R3[i] = round(1000 * res3) / 1000;
-    R4[i] = round(1000 * res4) / 1000;
-    R5[i] = round(1000 * res5) / 1000;
-    R6[i] = round(1000 * res6) / 1000;
-    R7[i] = round(1000 * res7) / 1000;
+    R1[i] = std::round(1000 * res1) / 1000;
+    R2[i] = std::round(1000 * res2) / 1000;
+    R3[i] = std::round(1000 * res3) / 1000;
+    R4[i] = std::round(1000 * res4) / 1000;
+    R5[i] = std::round(1000 * res5) / 1000;
+    R6[i] = std::round(1000 * res6) / 1000;
+    R7[i] = std::round(1000 * res7) / 1000;
   }
 
   R1.insert(R1.end(), R2.begin(), R2.end());
@@ -134,7 +133,7 @@ void getRDFDescCustom(double* DM, const ROMol& mol, const Conformer& conf,
       moldata3D.GetCustomAtomProp(mol, customAtomPropName);
 
   double p;
-  for (int i = 0; i < R.size(); i++) {
+  for (size_t i = 0; i < R.size(); i++) {
     double res = 0.0;
     for (int j = 0; j < numAtoms - 1; j++) {
       for (int k = j + 1; k < numAtoms; k++) {
@@ -142,7 +141,7 @@ void getRDFDescCustom(double* DM, const ROMol& mol, const Conformer& conf,
         res += customAtomArray[j] * customAtomArray[k] * p;  // "custom"
       }
     }
-    R1[i] = round(1000 * res) / 1000;
+    R1[i] = std::round(1000 * res) / 1000;
   }
   res = R1;
 }
@@ -191,7 +190,7 @@ void RDF(const ROMol& mol, std::vector<double>& res, int confId,
   // RDF145s RDF150s RDF155s
 
   PRECONDITION(mol.getNumConformers() >= 1, "molecule has no conformers")
-  int numAtoms = mol.getNumAtoms();
+  // int numAtoms = mol.getNumAtoms();
   // if (numAtoms < 4) return reserror;
 
   const Conformer& conf = mol.getConformer(confId);

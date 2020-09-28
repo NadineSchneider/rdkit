@@ -15,7 +15,7 @@
   This stuff is used by the PeriodicTable interface
 
 */
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef __RD_ATOMIC_DATA_H
 #define __RD_ATOMIC_DATA_H
 
@@ -58,7 +58,7 @@ class RDKIT_GRAPHMOL_EXPORT atomicData {
   double MostCommonIsotopeMass() const { return commonIsotopeMass; }
 
   // maps isotope number -> mass
-  std::map<unsigned int, std::pair<double, double> >
+  std::map<unsigned int, std::pair<double, double>>
       d_isotopeInfoMap;  // available isotopes
  private:
   int anum;                // atomic number
@@ -69,8 +69,8 @@ class RDKIT_GRAPHMOL_EXPORT atomicData {
   // is tolerated
   double mass;               // atomic mass
   int nVal;                  // number of outer shell electrons
-  int commonIsotope;         // most comon isotope
-  double commonIsotopeMass;  // most comon isotope
+  int commonIsotope;         // most common isotope
+  double commonIsotopeMass;  // most common isotope
 };
-};
+};  // namespace RDKit
 #endif

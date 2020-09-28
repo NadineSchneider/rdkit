@@ -7,7 +7,7 @@
 //  of the RDKit source tree.
 //
 
-#include <RDBoost/test.h>
+#include <RDGeneral/test.h>
 #include <RDGeneral/RDLog.h>
 #include <GraphMol/RDKitBase.h>
 #include <GraphMol/Canon.h>
@@ -353,6 +353,7 @@ void test4() {
   smi = MolToSmiles(*m);
   CHECK_INVARIANT(smi == "c1cc[cH-]c1", smi);
   TEST_ASSERT(m->getConformer().is3D() == false);
+  delete m;
 
   BOOST_LOG(rdInfoLog) << " Finished <---------- " << std::endl;
 }
@@ -380,6 +381,7 @@ void test5() {
   m = MolFileToMol(fName, true, false);
   CHECK_INVARIANT(m, "");
   TEST_ASSERT(m->getNumAtoms() == 39);
+  delete m;
 }
 
 void test6() {
@@ -710,6 +712,7 @@ void test8() {
   m = MolFileToMol(fName, false);
   TEST_ASSERT(m);
   TEST_ASSERT(m->getNumAtoms() == 9);
+  delete m;
 
   BOOST_LOG(rdInfoLog) << "done" << std::endl;
 }
@@ -768,6 +771,7 @@ void testIssue148() {
   TEST_ASSERT(m);
   TEST_ASSERT(m->getNumAtoms() == 9);
   TEST_ASSERT(m->getAtomWithIdx(0)->getFormalCharge() == 1);
+  delete m;
 
   BOOST_LOG(rdInfoLog) << "done" << std::endl;
 }
@@ -912,6 +916,7 @@ void testMolFileChgLines() {
     TEST_ASSERT(m1);
     TEST_ASSERT(m1->getAtomWithIdx(0)->getFormalCharge() == -1);
     TEST_ASSERT(m1->getAtomWithIdx(13)->getFormalCharge() == -1);
+    delete m1;
   }
 
   BOOST_LOG(rdInfoLog) << "done" << std::endl;
@@ -1288,6 +1293,7 @@ void testMolFileDegreeQueries() {
   smi = "CC(O)C";
   m2 = SmilesToMol(smi, false, false);
   TEST_ASSERT(!SubstructMatch(*m2, *m, mv));
+  delete m2;
 
   smi = "CC(O)";
   m2 = SmilesToMol(smi, false, false);
@@ -1437,6 +1443,7 @@ void testMolFileRBCQueries() {
   m = MolFileToMol(fName);
   TEST_ASSERT(m);
 
+  delete m2;
   smi = "CC";
   m2 = SmilesToMol(smi);
   TEST_ASSERT(SubstructMatch(*m2, *m, mv));
@@ -1606,7 +1613,7 @@ void testMolFileQueryToSmarts() {
   m = MolFileToMol(fName);
   TEST_ASSERT(m);
   sma = MolToSmarts(*m, true);
-  TEST_ASSERT(sma == "[#6;$(*=,:,#*)]~[#8]")
+  TEST_ASSERT(sma == "[#6&$(*=,:,#*)]~[#8]")
 
   delete m;
   BOOST_LOG(rdInfoLog) << "done" << std::endl;
@@ -1623,7 +1630,7 @@ void testMissingFiles() {
   ok = false;
   try {
     m = MolFileToMol(fName);
-  } catch (BadFileException &e) {
+  } catch (BadFileException &) {
     ok = true;
   }
   TEST_ASSERT(ok);
@@ -1631,7 +1638,7 @@ void testMissingFiles() {
   ok = false;
   try {
     m = TPLFileToMol(fName);
-  } catch (BadFileException &e) {
+  } catch (BadFileException &) {
     ok = true;
   }
   TEST_ASSERT(ok);
@@ -1660,6 +1667,7 @@ void testIssue1965035() {
 
   WedgeMolBonds(*m, &m->getConformer());
   TEST_ASSERT(m->getBondWithIdx(4)->getBondDir() == Bond::BEGINDASH);
+  delete m;
 
   BOOST_LOG(rdInfoLog) << "done" << std::endl;
 }
@@ -1884,7 +1892,7 @@ void testAtomParity() {
     // add a bogus chiral spec:
     m->getAtomWithIdx(0)->setChiralTag(Atom::CHI_TETRAHEDRAL_CW);
     std::string molBlock = MolToMolBlock(*m);
-    RWMol *m2 = (RWMol *)MolOps::removeHs(*((ROMol *)m));
+    auto *m2 = (RWMol *)MolOps::removeHs(*((ROMol *)m));
     molBlock = MolToMolBlock(*m2);
     delete m2;
     m2 = MolBlockToMol(molBlock, true, false);
@@ -2052,62 +2060,71 @@ void testMolFileAtomQueries() {
     delete m;
   }
   {
-    std::string fName =
-        rdbase + "/Code/GraphMol/FileParsers/test_data/query_A.mol";
-    RWMol *m = MolFileToMol(fName);
-    TEST_ASSERT(m);
+    std::vector<std::string> fNames = {
+        rdbase + "/Code/GraphMol/FileParsers/test_data/query_A.mol",
+        rdbase + "/Code/GraphMol/FileParsers/test_data/query_A.v3k.mol",
+    };
+    for (const auto fName : fNames) {
+      std::unique_ptr<RWMol> m(MolFileToMol(fName));
+      TEST_ASSERT(m);
+      TEST_ASSERT(m->getAtomWithIdx(6)->hasQuery());
+      TEST_ASSERT(m->getAtomWithIdx(6)->getQuery()->getTypeLabel() == "A");
 
-    RWMol *m2;
-    MatchVectType mv;
-    std::string smi;
+      RWMol *m2;
+      MatchVectType mv;
+      std::string smi;
 
-    smi = "[H]c1ccccc1";
-    m2 = SmilesToMol(smi, false, false);
-    MolOps::sanitizeMol(*m2);
-    TEST_ASSERT(!SubstructMatch(*m2, *m, mv));
-    delete m2;
+      smi = "[H]c1ccccc1";
+      m2 = SmilesToMol(smi, false, false);
+      MolOps::sanitizeMol(*m2);
+      TEST_ASSERT(!SubstructMatch(*m2, *m, mv));
+      delete m2;
 
-    smi = "Cc1ccccc1";
-    m2 = SmilesToMol(smi);
-    TEST_ASSERT(SubstructMatch(*m2, *m, mv));
-    TEST_ASSERT(mv.size() == 7);
-    delete m2;
+      smi = "Cc1ccccc1";
+      m2 = SmilesToMol(smi);
+      TEST_ASSERT(SubstructMatch(*m2, *m, mv));
+      TEST_ASSERT(mv.size() == 7);
+      delete m2;
 
-    smi = "Clc1ccccc1";
-    m2 = SmilesToMol(smi);
-    TEST_ASSERT(SubstructMatch(*m2, *m, mv));
-    TEST_ASSERT(mv.size() == 7);
-    delete m2;
-
-    delete m;
+      smi = "Clc1ccccc1";
+      m2 = SmilesToMol(smi);
+      TEST_ASSERT(SubstructMatch(*m2, *m, mv));
+      TEST_ASSERT(mv.size() == 7);
+      delete m2;
+    }
   }
   {
-    std::string fName =
-        rdbase + "/Code/GraphMol/FileParsers/test_data/query_Q.mol";
-    RWMol *m = MolFileToMol(fName);
-    TEST_ASSERT(m);
+    std::vector<std::string> fNames = {
+        rdbase + "/Code/GraphMol/FileParsers/test_data/query_Q.mol",
+        rdbase + "/Code/GraphMol/FileParsers/test_data/query_Q.v3k.mol",
+    };
+    for (const auto fName : fNames) {
+      std::unique_ptr<RWMol> m(MolFileToMol(fName));
+      TEST_ASSERT(m);
 
-    RWMol *m2;
-    MatchVectType mv;
-    std::string smi;
+      TEST_ASSERT(m->getAtomWithIdx(6)->hasQuery());
+      TEST_ASSERT(m->getAtomWithIdx(6)->getQuery()->getTypeLabel() == "Q");
+      RWMol *m2;
+      MatchVectType mv;
+      std::string smi;
 
-    smi = "[H]c1ccccc1";
-    m2 = SmilesToMol(smi, false, false);
-    MolOps::sanitizeMol(*m2);
-    TEST_ASSERT(!SubstructMatch(*m2, *m, mv));
-    delete m2;
+      smi = "[H]c1ccccc1";
+      m2 = SmilesToMol(smi, false, false);
+      MolOps::sanitizeMol(*m2);
+      TEST_ASSERT(!SubstructMatch(*m2, *m, mv));
+      delete m2;
 
-    smi = "Cc1ccccc1";
-    m2 = SmilesToMol(smi);
-    TEST_ASSERT(!SubstructMatch(*m2, *m, mv));
-    delete m2;
+      smi = "Cc1ccccc1";
+      m2 = SmilesToMol(smi);
+      TEST_ASSERT(!SubstructMatch(*m2, *m, mv));
+      delete m2;
 
-    smi = "Clc1ccccc1";
-    m2 = SmilesToMol(smi);
-    TEST_ASSERT(SubstructMatch(*m2, *m, mv));
-    TEST_ASSERT(mv.size() == 7);
-    delete m2;
-    delete m;
+      smi = "Clc1ccccc1";
+      m2 = SmilesToMol(smi);
+      TEST_ASSERT(SubstructMatch(*m2, *m, mv));
+      TEST_ASSERT(mv.size() == 7);
+      delete m2;
+    }
   }
   BOOST_LOG(rdInfoLog) << "done" << std::endl;
 }
@@ -2545,7 +2562,7 @@ void test3V3K() {
     RWMol *m = SmilesToMol(smiles);
     TEST_ASSERT(m);
     TEST_ASSERT(m->getNumAtoms() == 1024);
-    Conformer *conf = new Conformer(m->getNumAtoms());
+    auto *conf = new Conformer(m->getNumAtoms());
     m->addConformer(conf, true);
     std::string mb = MolToMolBlock(*m);
     TEST_ASSERT(mb.find("V2000") == std::string::npos);
@@ -2611,6 +2628,7 @@ void test3V3K() {
     TEST_ASSERT(m->getNumAtoms() == 6);
     sma = MolToSmarts(*m);
     TEST_ASSERT(sma == "[#6]1:[#6]:[#6]:[#6]:[#6]:[#6,#7,#15]:1");
+    delete m;
   }
 
   {
@@ -2631,6 +2649,7 @@ void test3V3K() {
     TEST_ASSERT(m->getNumAtoms() == 4);
     sma = MolToSmarts(*m);
     TEST_ASSERT(sma == "[#6]-[#6](-[#6])=[!#7&!#8]");
+    delete m;
   }
 
   BOOST_LOG(rdInfoLog) << "done" << std::endl;
@@ -2839,6 +2858,7 @@ void testIssue3154208() {
     std::cerr << "check isomorphism" << std::endl;
     TEST_ASSERT(SubstructMatch(*m, *m2, mv));
     TEST_ASSERT(SubstructMatch(*m2, *m, mv));
+    delete m2;
 
 #if 1
     BOOST_LOG(rdInfoLog) << "Large molecule canonical smiles test" << std::endl;
@@ -3300,12 +3320,14 @@ void testIssue3432136() {
         rdbase + "/Code/GraphMol/FileParsers/test_data/Issue3432136_2.v3k.mol";
     RWMol *m = MolFileToMol(fName);
     TEST_ASSERT(m);
+    delete m;
   }
   {
     std::string fName =
         rdbase + "/Code/GraphMol/FileParsers/test_data/Issue3432136_2.mol";
     RWMol *m = MolFileToMol(fName);
     TEST_ASSERT(m);
+    delete m;
   }
   BOOST_LOG(rdInfoLog) << " Finished <---------- " << std::endl;
 }
@@ -3319,6 +3341,7 @@ void testIssue3477283() {
         rdbase + "/Code/GraphMol/FileParsers/test_data/Issue3477283.mol";
     RWMol *m = MolFileToMol(fName);
     TEST_ASSERT(m);
+    delete m;
   }
   BOOST_LOG(rdInfoLog) << " Finished <---------- " << std::endl;
 }
@@ -3357,6 +3380,7 @@ void testIssue3514824() {
     TEST_ASSERT(m->getRingInfo());
     TEST_ASSERT(m->getRingInfo()->isInitialized());
     TEST_ASSERT(m->getRingInfo()->numRings() == 6);
+    delete m;
   }
   {
     std::string fName =
@@ -3368,6 +3392,7 @@ void testIssue3514824() {
     TEST_ASSERT(m->getRingInfo());
     TEST_ASSERT(m->getRingInfo()->isInitialized());
     TEST_ASSERT(m->getRingInfo()->numRings() == 8);
+    delete m;
   }
   BOOST_LOG(rdInfoLog) << " Finished <---------- " << std::endl;
 }
@@ -3387,6 +3412,7 @@ void testIssue3525799() {
     TEST_ASSERT(smiles ==
                 "[1*]c1c([2*])c([3*])c([4*])c(-c2c([9*])oc3c([8*])c([7*])c([6*]"
                 ")c([5*])c3c2=O)c1[10*]");
+    delete m;
   }
 
   BOOST_LOG(rdInfoLog) << "done" << std::endl;
@@ -3406,6 +3432,7 @@ void testIssue3557675() {
     TEST_ASSERT(m->getNumAtoms() == 3);
     TEST_ASSERT(m->getAtomWithIdx(2)->getAtomicNum() == 1);
     TEST_ASSERT(m->getAtomWithIdx(2)->getIsotope() == 2);
+    delete m;
   }
   {
     std::string fName =
@@ -3415,6 +3442,7 @@ void testIssue3557675() {
     TEST_ASSERT(m->getNumAtoms() == 3);
     TEST_ASSERT(m->getAtomWithIdx(2)->getAtomicNum() == 1);
     TEST_ASSERT(m->getAtomWithIdx(2)->getIsotope() == 3);
+    delete m;
   }
 
   BOOST_LOG(rdInfoLog) << "done" << std::endl;
@@ -3565,7 +3593,7 @@ void testGithub88() {
     bool ok = false;
     try {
       MolFileToMol(fName);
-    } catch (FileParseException &e) {
+    } catch (FileParseException &) {
       ok = true;
     }
     TEST_ASSERT(ok);
@@ -3667,6 +3695,7 @@ void testMolFileWithRxn() {
         m->getAtomWithIdx(17)->hasProp(common_properties::molRxnComponent));
     TEST_ASSERT(m->getAtomWithIdx(17)->getProp<int>(
                     common_properties::molRxnComponent) == 3);
+    delete m;
   }
 
   BOOST_LOG(rdInfoLog) << "done" << std::endl;
@@ -3752,13 +3781,15 @@ void testPDBFile() {
     TEST_ASSERT(feq(m->getConformer().getAtomPos(0).z, 3.625));
 
     // test adding hydrogens
-    ROMol *nm = MolOps::addHs(*m, false, false, NULL, true);
-    AtomPDBResidueInfo *info =
+    ROMol *nm = MolOps::addHs(*m, false, false, nullptr, true);
+    auto *info =
         (AtomPDBResidueInfo *)(nm->getAtomWithIdx(nm->getNumAtoms() - 1)
                                    ->getMonomerInfo());
     TEST_ASSERT(info->getMonomerType() == AtomMonomerInfo::PDBRESIDUE);
     TEST_ASSERT(info->getName() == " H7 ");
     TEST_ASSERT(info->getResidueName() == "ASN");
+    delete nm;
+    delete m;
   }
 
   {
@@ -3849,6 +3880,7 @@ void testPDBFile() {
     TEST_ASSERT(static_cast<AtomPDBResidueInfo *>(
                     m->getAtomWithIdx(2292)->getMonomerInfo())
                     ->getResidueName() == "LIA");
+    delete m;
   }
 
   {  // DNA
@@ -3882,6 +3914,13 @@ void testPDBFile() {
     TEST_ASSERT(static_cast<AtomPDBResidueInfo *>(
                     m->getAtomWithIdx(57)->getMonomerInfo())
                     ->getResidueName() == " DG");
+    TEST_ASSERT(m->getBondBetweenAtoms(31, 33)->getBondType() ==
+                Bond::AROMATIC);
+    TEST_ASSERT(m->getBondBetweenAtoms(120, 114)->getBondType() ==
+                Bond::AROMATIC);
+    TEST_ASSERT(m->getBondBetweenAtoms(39, 38)->getBondType() == Bond::DOUBLE);
+    TEST_ASSERT(m->getBondBetweenAtoms(138, 140)->getBondType() ==
+                Bond::AROMATIC);
     delete m;
   }
   {  // RNA
@@ -3908,6 +3947,12 @@ void testPDBFile() {
     TEST_ASSERT(static_cast<AtomPDBResidueInfo *>(
                     m->getAtomWithIdx(197)->getMonomerInfo())
                     ->getIsHeteroAtom());
+    TEST_ASSERT(m->getBondBetweenAtoms(104, 103)->getBondType() ==
+                Bond::AROMATIC);
+    TEST_ASSERT(m->getBondBetweenAtoms(60, 61)->getBondType() == Bond::DOUBLE);
+    TEST_ASSERT(m->getBondBetweenAtoms(38, 37)->getBondType() == Bond::DOUBLE);
+    TEST_ASSERT(m->getBondBetweenAtoms(148, 149)->getBondType() ==
+                Bond::DOUBLE);
 
     std::string mb = MolToPDBBlock(*m);
     delete m;
@@ -4042,15 +4087,8 @@ void testGithub1023() {
     TEST_ASSERT(m);
     TEST_ASSERT(m->getNumAtoms() == 119);
     TEST_ASSERT(m->getNumBonds() == 399);
-    bool ok = false;
-    try {
-      // the "molecule" isn't something we can properly handle. Expect a
-      // ValueErrorException
-      MolOps::findSSSR(*m);  // this was seg faulting
-    } catch (const ValueErrorException &e) {
-      ok = true;
-    }
-    TEST_ASSERT(ok);
+    MolOps::findSSSR(*m);  // this was seg faulting
+    delete m;
   }
 
   BOOST_LOG(rdInfoLog) << "done" << std::endl;
@@ -4070,6 +4108,7 @@ void testGithub166() {
     TEST_ASSERT(m);
     TEST_ASSERT(m->getNumAtoms() == 327);
     TEST_ASSERT(m->getNumBonds() == 337);
+    delete m;
   }
   BOOST_LOG(rdInfoLog) << "done" << std::endl;
 }
@@ -4090,6 +4129,7 @@ void testZBO() {
     TEST_ASSERT(m->getBondWithIdx(2)->getBondType() == Bond::ZERO);
     TEST_ASSERT(m->getBondWithIdx(6)->getBondType() == Bond::ZERO);
     TEST_ASSERT(m->getBondWithIdx(7)->getBondType() == Bond::ZERO);
+    delete m;
   }
   {
     std::string fName;
@@ -4107,6 +4147,7 @@ void testZBO() {
 
     // make sure we don't screw up aromaticity:
     TEST_ASSERT(m->getBondWithIdx(0)->getIsAromatic());
+    delete m;
   }
   {
     std::string fName;
@@ -4127,6 +4168,7 @@ void testZBO() {
     TEST_ASSERT(m->getBondWithIdx(21)->getBondType() == Bond::ZERO);
     TEST_ASSERT(m->getBondWithIdx(22)->getBondType() == Bond::ZERO);
     TEST_ASSERT(m->getBondWithIdx(23)->getBondType() == Bond::ZERO);
+    delete m;
   }
   {
     std::string fName;
@@ -4142,6 +4184,7 @@ void testZBO() {
     TEST_ASSERT(m->getAtomWithIdx(1)->getNumExplicitHs() == 0);
     TEST_ASSERT(m->getAtomWithIdx(0)->getTotalNumHs() == 3);
     TEST_ASSERT(m->getAtomWithIdx(1)->getTotalNumHs() == 3);
+    delete m;
   }
   BOOST_LOG(rdInfoLog) << "done" << std::endl;
 }
@@ -4159,6 +4202,7 @@ void testGithub164() {
     TEST_ASSERT(m->getNumAtoms() == 3);
     TEST_ASSERT(m->getNumBonds() == 2);
     TEST_ASSERT(m->getAtomWithIdx(0)->getExplicitValence() == 2);
+    delete m;
   }
   BOOST_LOG(rdInfoLog) << "done" << std::endl;
 }
@@ -4202,14 +4246,14 @@ void testGithub194() {
                     ->getName() == " O  ");
     TEST_ASSERT(m->getBondBetweenAtoms(2, 3));
     TEST_ASSERT(m->getBondBetweenAtoms(2, 3)->getBondType() == Bond::DOUBLE);
+    delete m;
   }
   BOOST_LOG(rdInfoLog) << "done" << std::endl;
 }
 
 void testGithub196() {
   BOOST_LOG(rdInfoLog)
-      << "testing github issue 196: left justitified bond topology"
-      << std::endl;
+      << "testing github issue 196: left justified bond topology" << std::endl;
   std::string rdbase = getenv("RDBASE");
   rdbase += "/Code/GraphMol/FileParsers/test_data/";
   {
@@ -4219,6 +4263,7 @@ void testGithub196() {
     TEST_ASSERT(m);
     TEST_ASSERT(m->getNumAtoms() == 19);
     TEST_ASSERT(m->getNumBonds() == 20);
+    delete m;
   }
   BOOST_LOG(rdInfoLog) << "done" << std::endl;
 }
@@ -4273,12 +4318,13 @@ void testGithub210() {
 
 namespace {
 std::string getResidue(const ROMol &, const Atom *at) {
-  if (at->getMonomerInfo()->getMonomerType() != AtomMonomerInfo::PDBRESIDUE)
+  if (at->getMonomerInfo()->getMonomerType() != AtomMonomerInfo::PDBRESIDUE) {
     return "";
+  }
   return static_cast<const AtomPDBResidueInfo *>(at->getMonomerInfo())
       ->getResidueName();
 }
-}
+}  // namespace
 void testPDBResidues() {
   BOOST_LOG(rdInfoLog) << "testing splitting on PDB residues" << std::endl;
   std::string rdbase = getenv("RDBASE");
@@ -4307,6 +4353,7 @@ void testPDBResidues() {
     TEST_ASSERT(feq(lig->getConformer().getAtomPos(11).x, 27.589));
     TEST_ASSERT(feq(lig->getConformer().getAtomPos(11).y, -0.311));
     TEST_ASSERT(feq(lig->getConformer().getAtomPos(11).z, 3.743));
+    delete m;
   }
   {
     std::string fName;
@@ -4316,7 +4363,7 @@ void testPDBResidues() {
     TEST_ASSERT(m->getAtomWithIdx(0)->getMonomerInfo()->getMonomerType() ==
                 AtomMonomerInfo::PDBRESIDUE);
     std::vector<std::string> keep;
-    keep.push_back("8NH");
+    keep.emplace_back("8NH");
     std::map<std::string, boost::shared_ptr<ROMol>> res =
         MolOps::getMolFragsWithQuery(*m, getResidue, false, &keep);
 
@@ -4332,6 +4379,7 @@ void testPDBResidues() {
     TEST_ASSERT(feq(lig->getConformer().getAtomPos(11).x, 27.589));
     TEST_ASSERT(feq(lig->getConformer().getAtomPos(11).y, -0.311));
     TEST_ASSERT(feq(lig->getConformer().getAtomPos(11).z, 3.743));
+    delete m;
   }
   {
     std::string fName;
@@ -4341,13 +4389,14 @@ void testPDBResidues() {
     TEST_ASSERT(m->getAtomWithIdx(0)->getMonomerInfo()->getMonomerType() ==
                 AtomMonomerInfo::PDBRESIDUE);
     std::vector<std::string> keep;
-    keep.push_back("8NH");
+    keep.emplace_back("8NH");
     std::map<std::string, boost::shared_ptr<ROMol>> res =
         MolOps::getMolFragsWithQuery(*m, getResidue, false, &keep, true);
 
     TEST_ASSERT(res.size() == 21);
     TEST_ASSERT(res.find(std::string("8NH")) == res.end());
     TEST_ASSERT(res.find(std::string("ALA")) != res.end());
+    delete m;
   }
   BOOST_LOG(rdInfoLog) << "done" << std::endl;
 }
@@ -4474,9 +4523,12 @@ void testRCSBSdf() {
   RWMol *mol = MolFileToMol(pathName + "s58_rcsb.mol");
   TEST_ASSERT(mol);
   delete mol;
+  BOOST_LOG(rdInfoLog) << "Finished" << std::endl;
 }
 
 void testParseCHG() {
+  BOOST_LOG(rdInfoLog) << "-------------------------------------" << std::endl;
+  BOOST_LOG(rdInfoLog) << "Testing PDB charge parsing" << std::endl;
   // BAD PDB Ligand with CHG line too long (>8) and right and mid-justified
   // symbols
   const std::string molblock_chg =
@@ -4595,7 +4647,9 @@ void testParseCHG() {
   RWMol *m = MolBlockToMol(molblock_chg);
   size_t i = 0;
   while (1) {
-    if (charges[i] == 0) break;
+    if (charges[i] == 0) {
+      break;
+    }
 
     TEST_ASSERT(
         m->getAtomWithIdx((unsigned int)charges[i] - 1)->getFormalCharge() ==
@@ -4619,9 +4673,12 @@ void testParseCHG() {
   TEST_ASSERT(positions.size() == 3);  // 24/3 == 8
 
   delete m;
+  BOOST_LOG(rdInfoLog) << "Finished" << std::endl;
 }
 
 void testMDLAtomProps() {
+  BOOST_LOG(rdInfoLog) << "-------------------------------------" << std::endl;
+  BOOST_LOG(rdInfoLog) << "Testing MDL atom properties" << std::endl;
   std::string smi = "CC";
   ROMOL_SPTR mol(SmilesToMol(smi, false, false));
   setAtomAlias(mol->getAtomWithIdx(0), "foo");
@@ -4636,15 +4693,19 @@ void testMDLAtomProps() {
     TEST_ASSERT(0);
   } catch (...) {
   }
+  BOOST_LOG(rdInfoLog) << "Finished" << std::endl;
 }
 
 void testSupplementalSmilesLabel() {
+  BOOST_LOG(rdInfoLog) << "-------------------------------------" << std::endl;
+  BOOST_LOG(rdInfoLog) << "Testing supplemental SMILES labels" << std::endl;
   std::string smi = "C";
   ROMOL_SPTR mol(SmilesToMol(smi, false, false));
   setSupplementalSmilesLabel(mol->getAtomWithIdx(0), "xxx");
   smi = MolToSmiles(*mol.get());
   TEST_ASSERT(smi == "Cxxx");
   TEST_ASSERT(getSupplementalSmilesLabel(mol->getAtomWithIdx(0)) == "xxx");
+  BOOST_LOG(rdInfoLog) << "Finished" << std::endl;
 }
 
 void testGithub1034() {
@@ -4668,6 +4729,7 @@ void testGithub1034() {
     TEST_ASSERT(m->getBondWithIdx(2)->getBondDir() != Bond::UNKNOWN);
     TEST_ASSERT(
         m->getBondWithIdx(2)->hasProp(common_properties::_UnknownStereo));
+    delete m;
   }
   {  // double bond
     std::string fName;
@@ -4695,6 +4757,7 @@ void testGithub1034() {
     TEST_ASSERT(m->getBondWithIdx(2)->getBondDir() != Bond::UNKNOWN);
     MolOps::assignStereochemistry(*m, true, true);
     TEST_ASSERT(m->getBondWithIdx(0)->getStereo() == Bond::STEREOANY);
+    delete m;
   }
   {  // chiral center
     std::string fName;
@@ -4708,6 +4771,7 @@ void testGithub1034() {
     TEST_ASSERT(m->getBondWithIdx(3)->getBondDir() == Bond::NONE);
     TEST_ASSERT(
         m->getBondWithIdx(3)->hasProp(common_properties::_UnknownStereo));
+    delete m;
   }
   {  // chiral center
     std::string fName;
@@ -4727,6 +4791,7 @@ void testGithub1034() {
     TEST_ASSERT(m->getBondWithIdx(3)->getBondType() == Bond::SINGLE);
     TEST_ASSERT(m->getBondWithIdx(3)->getBondDir() != Bond::UNKNOWN);
     TEST_ASSERT(m->getAtomWithIdx(0)->getChiralTag() == Atom::CHI_UNSPECIFIED);
+    delete m;
   }
 
   BOOST_LOG(rdInfoLog) << "done" << std::endl;
@@ -5067,7 +5132,7 @@ void testMarvinSMATag() {
       ok = true;
       TEST_ASSERT(
           std::string("Cannot parse smarts: 'MyDogHasFleas' on line 12") ==
-          e.message());
+          e.what());
     }
     TEST_ASSERT(ok);
   }
@@ -5101,7 +5166,7 @@ void testGithub1689() {
     bool ok = false;
     try {
       MolBlockToMol(molb, sanitize, removeHs, strictParsing);
-    } catch (FileParseException &e) {
+    } catch (FileParseException &) {
       ok = true;
     }
     TEST_ASSERT(ok);
@@ -5184,6 +5249,31 @@ void testGithub1615() {
   BOOST_LOG(rdInfoLog) << "done" << std::endl;
 }
 
+void testGithub2000() {
+  BOOST_LOG(rdInfoLog)
+      << "testing github #2000: Error while parsing empty atom list"
+      << std::endl;
+  std::string rdbase = getenv("RDBASE");
+  rdbase += "/Code/GraphMol/FileParsers/test_data/";
+  {
+    std::string fName = rdbase + "github2000.sdf";
+    std::unique_ptr<RWMol> m1(MolFileToMol(fName));
+    TEST_ASSERT(m1);
+    TEST_ASSERT(!m1->getAtomWithIdx(0)->hasQuery());
+  }
+  {
+    std::string fName = rdbase + "github2000.2.sdf";
+    bool ok = false;
+    try {
+      std::unique_ptr<RWMol> m1(MolFileToMol(fName));
+    } catch (FileParseException &) {
+      ok = true;
+    }
+    TEST_ASSERT(ok);
+  }
+  BOOST_LOG(rdInfoLog) << "done" << std::endl;
+}
+
 void RunTests() {
 #if 1
   test1();
@@ -5231,7 +5321,6 @@ void RunTests() {
   testIssue3375684();
   testChiralPhosphorous();
   testIssue3392107();
-  testIssue3432136();
   testIssue3477283();
   testIssue3484552();
   testIssue3514824();
@@ -5277,12 +5366,13 @@ void RunTests() {
   testGithub1029();
   testGithub1340();
   testGithub1034();
-#endif
   testMolBlockChirality();
   testMolBlock3DStereochem();
   testGithub1689();
   testWedgeBondToDoublebond();
   testGithub1615();
+#endif
+  testGithub2000();
 }
 
 // must be in German Locale for test...
@@ -5322,8 +5412,11 @@ void testLocaleSwitcher() {
 #include <future>
 
 namespace {
-void runblock() { testLocaleSwitcher(); }
+void runblock() {
+  std::setlocale(LC_ALL, "de_DE.UTF-8");
+  testLocaleSwitcher();
 }
+}  // namespace
 void testMultiThreadedSwitcher() {
   BOOST_LOG(rdErrorLog) << "-------------------------------------" << std::endl;
   BOOST_LOG(rdErrorLog) << "    Test multithreading Locale Switching"
@@ -5361,9 +5454,9 @@ int main(int argc, char *argv[]) {
 
   BOOST_LOG(rdInfoLog) << " ---- Running with German locale ----- "
                        << std::endl;
-  setlocale(LC_ALL, "de_DE.UTF-8");
-  std::cout << setlocale(LC_ALL, nullptr) << std::endl;
-  testLocaleSwitcher();  // must be the last test
+  std::setlocale(LC_ALL, "de_DE.UTF-8");
+  std::cout << std::setlocale(LC_ALL, nullptr) << std::endl;
+  testLocaleSwitcher();
   testMultiThreadedSwitcher();
   RunTests();
 

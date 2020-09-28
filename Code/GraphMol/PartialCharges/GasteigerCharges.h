@@ -7,7 +7,7 @@
 //  which is included in the file license.txt, found at the root
 //  of the RDKit source tree.
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef _RD_GASTEIGERCHARGES_H
 #define _RD_GASTEIGERCHARGES_H
 
@@ -15,12 +15,13 @@
 
 namespace RDKit {
 class ROMol;
-RDKIT_PARTIALCHARGES_EXPORT void computeGasteigerCharges(const ROMol *mol, int nIter = 12,
-                             bool throwOnParamFailure = false);
-RDKIT_PARTIALCHARGES_EXPORT void computeGasteigerCharges(const ROMol &mol, int nIter = 12,
-                             bool throwOnParamFailure = false);
-RDKIT_PARTIALCHARGES_EXPORT void computeGasteigerCharges(const ROMol &mol, std::vector<double> &charges,
-                             int nIter = 12, bool throwOnParamFailure = false);
-}
+RDKIT_PARTIALCHARGES_EXPORT void computeGasteigerCharges(
+    const ROMol *mol, int nIter = 12, bool throwOnParamFailure = false);
+RDKIT_PARTIALCHARGES_EXPORT void computeGasteigerCharges(
+    const ROMol &mol, int nIter = 12, bool throwOnParamFailure = false);
+RDKIT_PARTIALCHARGES_EXPORT void computeGasteigerCharges(
+    const ROMol &mol, std::vector<double> &charges, int nIter = 12,
+    bool throwOnParamFailure = false);
+}  // namespace RDKit
 
 #endif

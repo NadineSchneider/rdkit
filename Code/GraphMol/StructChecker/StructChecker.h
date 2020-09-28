@@ -17,7 +17,7 @@ future
 releases.
 
 */
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #pragma once
 #ifndef RD_STRUCTCHECKER_H_Oct2016
 #define RD_STRUCTCHECKER_H_Oct2016
@@ -134,7 +134,7 @@ struct RDKIT_STRUCTCHECKER_EXPORT StructCheckerOptions {
   bool Verbose;
 
   // Internal data for struchk
-  std::vector<std::pair<AugmentedAtom, AugmentedAtom> > AugmentedAtomPairs;
+  std::vector<std::pair<AugmentedAtom, AugmentedAtom>> AugmentedAtomPairs;
   std::vector<AugmentedAtom> AcidicAtoms;
   std::vector<AugmentedAtom> GoodAtoms;
   std::vector<ROMOL_SPTR> Patterns;
@@ -149,10 +149,10 @@ struct RDKIT_STRUCTCHECKER_EXPORT StructCheckerOptions {
   std::vector<IncEntry> ChargeIncTable;
   // std::map AtomSymbol(or AtomicNumber) -> IncEntry
   /* [ReadTransformation() ]
-  * The alpha, beta coefficients of the transfomation function used
-  * to stretch the preliminary pKa values to the actual predictions.
-  * The function is pKa = 7 + (pKa'-7)*beta + ((pKa'-7)*alpha)^3.
-  */
+   * The alpha, beta coefficients of the transfomation function used
+   * to stretch the preliminary pKa values to the actual predictions.
+   * The function is pKa = 7 + (pKa'-7)*beta + ((pKa'-7)*alpha)^3.
+   */
 
   double Alpha, Beta;
   std::vector<PathEntry> AlphaPathTable, BetaPathTable;
@@ -164,7 +164,7 @@ struct RDKIT_STRUCTCHECKER_EXPORT StructCheckerOptions {
 
   bool loadAugmentedAtomTranslations(const std::string &path);
   void setAugmentedAtomTranslations(
-      const std::vector<std::pair<AugmentedAtom, AugmentedAtom> > &aaPairs);
+      const std::vector<std::pair<AugmentedAtom, AugmentedAtom>> &aaPairs);
 
   bool loadAcidicAugmentedAtoms(const std::string &path);
   void setAcidicAugmentedAtoms(const std::vector<AugmentedAtom> &acidicAtoms);
@@ -174,19 +174,19 @@ struct RDKIT_STRUCTCHECKER_EXPORT StructCheckerOptions {
 
   bool loadPatterns(const std::string &path);  // file with clean patterns
   void parsePatterns(
-      const std::vector<std::string> &smarts);  // can throw RDKit exeptions
+      const std::vector<std::string> &smarts);  // can throw RDKit exceptions
   void setPatterns(const std::vector<ROMOL_SPTR> &p);
 
   bool loadRotatePatterns(
       const std::string &path);  // file with rotate patterns
   void parseRotatePatterns(
-      const std::vector<std::string> &smarts);  // can throw RDKit exeptions
+      const std::vector<std::string> &smarts);  // can throw RDKit exceptions
   void setRotatePatterns(const std::vector<ROMOL_SPTR> &p);
 
   bool loadStereoPatterns(
       const std::string &path);  // file with stereo patterns
   void parseStereoPatterns(
-      const std::vector<std::string> &smarts);  // can throw RDKit exeptions
+      const std::vector<std::string> &smarts);  // can throw RDKit exceptions
   void setStereoPatterns(const std::vector<ROMOL_SPTR> &p);
 
   bool loadTautomerData(const std::string &path);  // file path
@@ -197,7 +197,8 @@ struct RDKIT_STRUCTCHECKER_EXPORT StructCheckerOptions {
   bool loadChargeDataTables(const std::string &path);  // file path
 };
 
-RDKIT_STRUCTCHECKER_EXPORT bool parseOptionsJSON(const std::string &json, StructCheckerOptions &op);
+RDKIT_STRUCTCHECKER_EXPORT bool parseOptionsJSON(const std::string &json,
+                                                 StructCheckerOptions &op);
 
 RDKIT_STRUCTCHECKER_EXPORT bool loadOptionsFromFiles(
     StructCheckerOptions &op,
@@ -287,14 +288,14 @@ class RDKIT_STRUCTCHECKER_EXPORT StructChecker {
   // that describes what have been done
   unsigned checkMolStructure(RWMol &mol) const;
 
-  // an instance independed helper methods:
-  // Converts structure property flags to a comma seperated string
+  // an instance independent helper methods:
+  // Converts structure property flags to a comma separated string
   static std::string StructureFlagsToString(unsigned flags);
-  // Converts a comma seperated string to a StructureFlag unsigned integer
+  // Converts a comma separated string to a StructureFlag unsigned integer
   static unsigned StringToStructureFlags(const std::string &str);
   // internal implementation:
  private:
 };
-}
-}
+}  // namespace StructureCheck
+}  // namespace RDKit
 #endif

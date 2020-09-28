@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2003-2006 Greg Landrum and Rational Discovery LLC
+// Copyright (c) 2003-2020 Greg Landrum and Rational Discovery LLC
 //
 //   @@ All Rights Reserved @@
 //  This file is part of the RDKit.
@@ -7,9 +7,9 @@
 //  which is included in the file license.txt, found at the root
 //  of the RDKit source tree.
 //
-#include <RDBoost/export.h>
-#ifndef __RD_QUERY_H__
-#define __RD_QUERY_H__
+#include <RDGeneral/export.h>
+#ifndef RD_QUERY_H
+#define RD_QUERY_H
 
 #ifdef _MSC_VER
 #pragma warning(disable : 4800)  // warning: converting things to bool
@@ -17,7 +17,6 @@
 
 #include <vector>
 #include <string>
-#include <boost/smart_ptr.hpp>
 #include <RDGeneral/Invariant.h>
 
 namespace Queries {
@@ -45,17 +44,14 @@ template <class MatchFuncArgType, class DataFuncArgType = MatchFuncArgType,
           bool needsConversion = false>
 class Query {
  public:
-  typedef boost::shared_ptr<
-      Query<MatchFuncArgType, DataFuncArgType, needsConversion> > CHILD_TYPE;
+  typedef std::shared_ptr<
+      Query<MatchFuncArgType, DataFuncArgType, needsConversion>>
+      CHILD_TYPE;
   typedef std::vector<CHILD_TYPE> CHILD_VECT;
   typedef typename CHILD_VECT::iterator CHILD_VECT_I;
   typedef typename CHILD_VECT::const_iterator CHILD_VECT_CI;
 
-  Query()
-      : d_description(""),
-        df_negate(false),
-        d_matchFunc(NULL),
-        d_dataFunc(NULL){};
+  Query() : d_matchFunc(nullptr), d_dataFunc(nullptr){};
   virtual ~Query() { this->d_children.clear(); };
 
   //! sets whether or not we are negated
@@ -80,6 +76,13 @@ class Query {
     else
       return "not " + getDescription();
   }
+
+  //! sets our type label
+  void setTypeLabel(const std::string &typ) { this->d_queryType = typ; };
+  //! \overload
+  void setTypeLabel(const char *typ) { this->d_queryType = std::string(typ); };
+  //! returns our text label.
+  const std::string &getTypeLabel() const { return this->d_queryType; };
 
   //! sets our match function
   void setMatchFunc(bool (*what)(MatchFuncArgType)) {
@@ -127,29 +130,35 @@ class Query {
       const {
     Query<MatchFuncArgType, DataFuncArgType, needsConversion> *res =
         new Query<MatchFuncArgType, DataFuncArgType, needsConversion>();
-    typename Query<MatchFuncArgType, DataFuncArgType,
-                   needsConversion>::CHILD_VECT_CI iter;
-    for (iter = this->beginChildren(); iter != this->endChildren(); ++iter) {
+    for (auto iter = this->beginChildren(); iter != this->endChildren();
+         ++iter) {
       res->addChild(CHILD_TYPE(iter->get()->copy()));
     }
+    res->d_val = this->d_val;
+    res->d_tol = this->d_tol;
     res->df_negate = this->df_negate;
     res->d_matchFunc = this->d_matchFunc;
     res->d_dataFunc = this->d_dataFunc;
     res->d_description = this->d_description;
+    res->d_queryType = this->d_queryType;
     return res;
   };
 
  protected:
-  std::string d_description;
+  MatchFuncArgType d_val = 0;
+  MatchFuncArgType d_tol = 0;
+  std::string d_description = "";
+  std::string d_queryType = "";
   CHILD_VECT d_children;
-  bool df_negate;
+  bool df_negate{false};
   bool (*d_matchFunc)(MatchFuncArgType);
-  
- // MSVC complains at compile time when TypeConvert(MatchFuncArgType what, Int2Type<false>)
- // attempts to pass what (which is of type MatchFuncArgType) as parameter of d_dataFunc()
- // (which should be of type DataFuncArgType). The union is but a trick to avoid
- // silly casts and keep MSVC happy when building DLLs
- union {
+
+  // MSVC complains at compile time when TypeConvert(MatchFuncArgType what,
+  // Int2Type<false>) attempts to pass what (which is of type MatchFuncArgType)
+  // as parameter of d_dataFunc() (which should be of type DataFuncArgType). The
+  // union is but a trick to avoid silly casts and keep MSVC happy when building
+  // DLLs
+  union {
     MatchFuncArgType (*d_dataFunc)(DataFuncArgType);
     MatchFuncArgType (*d_dataFuncSameType)(MatchFuncArgType);
   };
@@ -158,7 +167,8 @@ class Query {
   MatchFuncArgType TypeConvert(MatchFuncArgType what,
                                Int2Type<false> /*d*/) const {
     MatchFuncArgType mfArg;
-    if (this->d_dataFuncSameType != NULL && std::is_same<MatchFuncArgType, DataFuncArgType>::value) {
+    if (this->d_dataFuncSameType != nullptr &&
+        std::is_same<MatchFuncArgType, DataFuncArgType>::value) {
       mfArg = this->d_dataFuncSameType(what);
     } else {
       mfArg = what;
@@ -166,7 +176,7 @@ class Query {
     return mfArg;
   }
   //! calls our \c dataFunc (which must be set) on \c what and returns the
-  //result
+  // result
   MatchFuncArgType TypeConvert(DataFuncArgType what,
                                Int2Type<true> /*d*/) const {
     PRECONDITION(this->d_dataFunc, "no data function");
@@ -194,5 +204,5 @@ int queryCmp(const T1 v1, const T2 v2, const T1 tol) {
     return 1;
   }
 };
-}
+}  // namespace Queries
 #endif

@@ -7,7 +7,7 @@
 //  which is included in the file license.txt, found at the root
 //  of the RDKit source tree.
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef _RD_GASTEIGERPARAMS_H
 #define _RD_GASTEIGERPARAMS_H
 
@@ -28,14 +28,14 @@ const double DAMP_SCALE = 0.5;
 const double DAMP = 0.5;
 
 class RDKIT_PARTIALCHARGES_EXPORT GasteigerParams {
-  /* \brief Container for all the partial charge paramters
+  /* \brief Container for all the partial charge parameters
    *
    * It is filled by the paramData string defined in GasteigerParams.cpp
    * The main data member is a STL map that take a pair<std::string,
    *std::string>
    * of element name and mode (hybridization or bonding mode) and return a
    *vector
-   * of three parameters, used int eh ierative partial charges euqlization
+   * of three parameters, used in the iterative partial charges equalization
    *procedure
    */
 
@@ -81,6 +81,6 @@ class RDKIT_PARTIALCHARGES_EXPORT GasteigerParams {
 
   static class GasteigerParams *ds_instance;
 };
-};
+};  // namespace RDKit
 
 #endif

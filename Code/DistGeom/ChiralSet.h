@@ -7,7 +7,7 @@
 //  which is included in the file license.txt, found at the root
 //  of the RDKit source tree.
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef __RD_CHIRAL_SET_H__
 #define __RD_CHIRAL_SET_H__
 
@@ -53,6 +53,6 @@ class RDKIT_DISTGEOMETRY_EXPORT ChiralSet {
 
 typedef boost::shared_ptr<ChiralSet> ChiralSetPtr;
 typedef std::vector<ChiralSetPtr> VECT_CHIRALSET;
-}
+}  // namespace DistGeom
 
 #endif

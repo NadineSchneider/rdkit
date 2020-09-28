@@ -29,7 +29,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef ENUMERATION_STRATEGY_H
 #define ENUMERATION_STRATEGY_H
 
@@ -37,7 +37,7 @@
 #include "../Reaction.h"
 #include <vector>
 #include <RDGeneral/BoostStartInclude.h>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #ifdef RDK_USE_BOOST_SERIALIZATION
 #include <boost/serialization/assume_abstract.hpp>
 #include <boost/serialization/vector.hpp>
@@ -53,12 +53,13 @@
 namespace RDKit {
 
 //! class for flagging enumeration strategy errors
-class RDKIT_CHEMREACTIONS_EXPORT EnumerationStrategyException : public std::exception {
+class RDKIT_CHEMREACTIONS_EXPORT EnumerationStrategyException
+    : public std::exception {
  public:
   EnumerationStrategyException(const char *msg) : _msg(msg){};
   EnumerationStrategyException(const std::string &msg) : _msg(msg){};
-  const char *message() const { return _msg.c_str(); };
-  ~EnumerationStrategyException() throw(){};
+  const char *what() const noexcept override { return _msg.c_str(); };
+  ~EnumerationStrategyException() noexcept {};
 
  private:
   std::string _msg;
@@ -71,7 +72,7 @@ class RDKIT_CHEMREACTIONS_EXPORT EnumerationStrategyException : public std::exce
  */
 template <class T>
 EnumerationTypes::RGROUPS getSizesFromBBs(
-    const std::vector<std::vector<T> > &bbs) {
+    const std::vector<std::vector<T>> &bbs) {
   EnumerationTypes::RGROUPS sizes;
   for (size_t i = 0; i < bbs.size(); ++i) sizes.push_back(bbs[i].size());
   return sizes;
@@ -88,8 +89,9 @@ RDKIT_CHEMREACTIONS_EXPORT EnumerationTypes::RGROUPS getSizesFromReactants(
 //!  Helper function for enumeration, bbs are stored in a
 //!   std::vector< std::vector<boost:shared_ptr<ROMol> >
 //
-RDKIT_CHEMREACTIONS_EXPORT MOL_SPTR_VECT getReactantsFromRGroups(const std::vector<MOL_SPTR_VECT> &bbs,
-                                      const EnumerationTypes::RGROUPS &rgroups);
+RDKIT_CHEMREACTIONS_EXPORT MOL_SPTR_VECT
+getReactantsFromRGroups(const std::vector<MOL_SPTR_VECT> &bbs,
+                        const EnumerationTypes::RGROUPS &rgroups);
 
 //! computeNumProducts
 //!  Returns the number of possible product combination from
@@ -98,9 +100,10 @@ RDKIT_CHEMREACTIONS_EXPORT MOL_SPTR_VECT getReactantsFromRGroups(const std::vect
 //!   number will not fit into the machines integer type.
 //!   n.b. An overflow simply means there are a lot of products
 //!     not that they cannot be enumerated
-RDKIT_CHEMREACTIONS_EXPORT boost::uint64_t computeNumProducts(const EnumerationTypes::RGROUPS &sizes);
+RDKIT_CHEMREACTIONS_EXPORT boost::uint64_t computeNumProducts(
+    const EnumerationTypes::RGROUPS &sizes);
 
-//! Base Class for enumeration strageties
+//! Base Class for enumeration strategies
 //!  Usage:
 //!  EnumerationStrategyBase must be initialized with both a reaction
 //!   and the building block (molecule) vector to be sampled.
@@ -120,13 +123,13 @@ class RDKIT_CHEMREACTIONS_EXPORT EnumerationStrategyBase {
   EnumerationTypes::RGROUPS
       m_permutationSizes;  // m_permutationSizes num bbs per group
   boost::uint64_t
-      m_numPermutations;  // total number of permutations for this group
+      m_numPermutations{};  // total number of permutations for this group
                           //  -1 if > ssize_t::max
  public:
   static const boost::uint64_t EnumerationOverflow =
       static_cast<boost::uint64_t>(-1);
   EnumerationStrategyBase()
-      : m_permutation(), m_permutationSizes(), m_numPermutations() {}
+      : m_permutation(), m_permutationSizes() {}
 
   virtual ~EnumerationStrategyBase() {}
 
@@ -135,6 +138,7 @@ class RDKIT_CHEMREACTIONS_EXPORT EnumerationStrategyBase {
   //! Initialize the enumerator based on the reaction and the
   //! supplied building blocks
   //!  This is the standard API point.
+  //!  This calls the derived class's initializeStrategy method which must be implemented
   void initialize(const ChemicalReaction &reaction,
                   const EnumerationTypes::BBS &building_blocks) {
     // default initialization, may be overridden (sets the # reactants
@@ -148,8 +152,11 @@ class RDKIT_CHEMREACTIONS_EXPORT EnumerationStrategyBase {
     initializeStrategy(reaction, building_blocks);
   }
 
-  // ! Initialize derived class
-  // ! must exist, EnumerationStrategyBase structures are already initialized
+  // ! Initialize derived class. Must exist.
+  // ! EnumerationStrategyBase structures are already initialized:
+  // !  m_permutationSizes - [ length of building blocks for each reactant set ]
+  // !  m_numPermutations - number of possible permutations ( -1 if not computable )
+  // !  m_permutation - the first permutation, always the first supplied reactants
   virtual void initializeStrategy(
       const ChemicalReaction &reaction,
       const EnumerationTypes::BBS &building_blocks) = 0;
@@ -204,7 +211,7 @@ class RDKIT_CHEMREACTIONS_EXPORT EnumerationStrategyBase {
 #ifdef RDK_USE_BOOST_SERIALIZATION
 BOOST_SERIALIZATION_ASSUME_ABSTRACT(EnumerationStrategyBase)
 #endif
-}
+}  // namespace RDKit
 
 #ifdef RDK_USE_BOOST_SERIALIZATION
 BOOST_CLASS_VERSION(RDKit::EnumerationStrategyBase, 1)

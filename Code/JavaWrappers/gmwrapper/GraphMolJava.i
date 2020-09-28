@@ -1,5 +1,4 @@
 /*
-* $Id$
 *
 *  Copyright (c) 2010, Novartis Institutes for BioMedical Research Inc.
 *  All rights reserved.
@@ -70,7 +69,7 @@
 %include <boost/smart_ptr/shared_array.hpp>
 
 /* undefine RDKIT_<LIBNAME>_EXPORT macros */
-%include <RDBoost/export.h>
+%include <RDGeneral/export.h>
 /* Include the base types before anything that will utilize them */
 #ifdef SWIGWIN
 %include "../msvc_stdint.i"
@@ -83,7 +82,6 @@
 %include "std_map.i"
 %include "std_pair.i"
 %include "carrays.i"
-
 
 /*
  * Custom handler for longs.  The problem is described in swig-Bugs-2965875
@@ -130,8 +128,15 @@ typedef unsigned long long int	uintmax_t;
 %shared_ptr(RDKit::QueryAtom)
 %shared_ptr(RDKit::QueryBond)
 %shared_ptr(RDKit::QueryOps)
+%shared_ptr(RDKit::MolBundle)
+%shared_ptr(RDKit::FixedMolSizeMolBundle)
 %shared_ptr(RDKit::MolSanitizeException)
+%shared_ptr(RDKit::AtomSanitizeException)
+%shared_ptr(RDKit::AtomValenceException)
+%shared_ptr(RDKit::AtomKekulizeException)
+%shared_ptr(RDKit::KekulizeException)
 %shared_ptr(RDKit::SmilesParseException)
+%shared_ptr(RDKit::MolPicklerException)
 %shared_ptr(RDKit::RingInfo)
 %shared_ptr(RDKit::ChemicalReaction)
 %shared_ptr(ForceFields::ForceFieldContrib);
@@ -184,6 +189,7 @@ typedef unsigned long long int	uintmax_t;
 %include "../Conformer.i"
 %include "../Dict.i"
 %include "../RDProps.i"
+%include "../StereoGroup.i"
 %include "../ROMol.i"
 %include "../RWMol.i"
 %include "../Bond.i"
@@ -196,6 +202,7 @@ typedef unsigned long long int	uintmax_t;
 %include "../QueryAtom.i"
 %include "../QueryBond.i"
 %include "../QueryOps.i"
+%include "../MolBundle.i"
 %include "../MonomerInfo.i"
 %include "../PeriodicTable.i"
 %include "../SanitException.i"
@@ -223,6 +230,15 @@ typedef unsigned long long int	uintmax_t;
 %include "../MolDraw2D.i"
 %include "../FilterCatalog.i"
 %include "../Trajectory.i"
+%include "../MolStandardize.i"
+%include "../SubstructLibrary.i"
+%include "../RGroupDecomposition.i"
+%include "../ScaffoldNetwork.i"
+%include "../TautomerQuery.i"
+%include "../SubstanceGroup.i"
+%include "../MolEnumerator.i"
+%include "../MolHash.i"
+%include "../Streams.i"
 
 // Create a class to throw various sorts of errors for testing.  Required for unit tests in ErrorHandlingTests.java
 #ifdef INCLUDE_ERROR_GENERATOR
@@ -300,10 +316,10 @@ typedef unsigned long long int	uintmax_t;
 
 %include "../Descriptors.i"
 
-#ifdef BUILD_AVALON_SUPPORT
+#ifdef RDK_BUILD_AVALON_SUPPORT
 %include "../AvalonLib.i"
 #endif
-#ifdef BUILD_INCHI_SUPPORT
+#ifdef RDK_BUILD_INCHI_SUPPORT
 %include "../Inchi.i"
 #endif
 

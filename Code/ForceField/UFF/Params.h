@@ -7,10 +7,11 @@
 //  which is included in the file license.txt, found at the root
 //  of the RDKit source tree.
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef __RD_UFFPARAMS_H__
 #define __RD_UFFPARAMS_H__
 
+#include <memory>
 #include <string>
 #include <cmath>
 #include <map>
@@ -89,7 +90,7 @@ const double lambda = 0.1332;  //!< scaling factor for rBO correction
 const double G = 332.06;       //!< bond force constant prefactor
 const double amideBondOrder =
     1.41;  //!< special case bond order for amide C-N bonds.
-};
+};         // namespace Params
 
 //! singleton class for retrieving UFF AtomParams
 /*!
@@ -139,15 +140,15 @@ class RDKIT_FORCEFIELD_EXPORT ParamCollection {
     if (res != d_params.end()) {
       return &((*res).second);
     }
-    return 0;
+    return nullptr;
   }
 
  private:
   //! to force this to be a singleton, the constructor must be private
   ParamCollection(std::string paramData);
-  static class ParamCollection *ds_instance;     //!< the singleton
+  static class std::unique_ptr<ParamCollection> ds_instance;  //!< the singleton
   std::map<std::string, AtomicParams> d_params;  //!< the parameter map
 };
-}
-}
+}  // namespace UFF
+}  // namespace ForceFields
 #endif

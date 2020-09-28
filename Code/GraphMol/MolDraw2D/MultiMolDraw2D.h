@@ -7,7 +7,7 @@
 //  of the RDKit source tree.
 //
 
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef RDKITMULTIMOLDRAW2D_H
 #define RDKITMULTIMOLDRAW2D_H
 
@@ -26,13 +26,15 @@ class RDKIT_MOLDRAW2D_EXPORT MultiMolDraw2D {
   virtual ~MultiMolDraw2D() {}
   virtual void drawMolecules(
       const std::vector<ROMOL_SPTR> &mols,
-      const std::vector<std::string> *legends = NULL,
-      const std::vector<std::vector<int> > *highlight_atoms = NULL,
-      const std::vector<std::vector<int> > *highlight_bonds = NULL,
-      const std::vector<std::map<int, DrawColour> > *highlight_atom_maps = NULL,
-      const std::vector<std::map<int, DrawColour> > *highlight_bond_maps = NULL,
-      const std::vector<std::map<int, double> > *highlight_radii = NULL,
-      const std::vector<int> *confIds = NULL);
+      const std::vector<std::string> *legends = nullptr,
+      const std::vector<std::vector<int>> *highlight_atoms = nullptr,
+      const std::vector<std::vector<int>> *highlight_bonds = nullptr,
+      const std::vector<std::map<int, DrawColour>> *highlight_atom_maps =
+          nullptr,
+      const std::vector<std::map<int, DrawColour>> *highlight_bond_maps =
+          nullptr,
+      const std::vector<std::map<int, double>> *highlight_radii = nullptr,
+      const std::vector<int> *confIds = nullptr);
 
   virtual int width() const { return width_; }
   virtual int height() const { return height_; }
@@ -48,8 +50,8 @@ class RDKIT_MOLDRAW2D_EXPORT MultiMolDraw2D {
   bool globalScaling_;
   MolDrawOptions options_;
 
-  std::vector<std::shared_ptr<T> > drawers_;
+  std::vector<std::shared_ptr<T>> drawers_;
 };
-}
+}  // namespace RDKit
 
 #endif  // RDKITMOLDRAW2D_H

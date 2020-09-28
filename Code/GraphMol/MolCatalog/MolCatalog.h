@@ -2,7 +2,7 @@
 //  Copyright (C) 2006 Greg Landrum
 //
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef _RD_MOL_CATALOG_H_
 #define _RD_MOL_CATALOG_H_
 
@@ -15,6 +15,6 @@ namespace RDKit {
 //! a hierarchical catalog for holding molecules
 typedef RDCatalog::HierarchCatalog<MolCatalogEntry, MolCatalogParams, int>
     MolCatalog;
-}
+}  // namespace RDKit
 
 #endif

@@ -7,7 +7,7 @@
 //  which is included in the file license.txt, found at the root
 //  of the RDKit source tree.
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef _RD_DEPICTOR_H_
 #define _RD_DEPICTOR_H_
 #include <string>
@@ -30,6 +30,6 @@ int Add2DCoordsToMol(ROMol& mol, bool useDLL = true);
 #else
 int Add2DCoordsToMol(ROMol &mol, bool useDLL = false);
 #endif
-}
+}  // namespace RDKit
 
 #endif

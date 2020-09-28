@@ -7,7 +7,7 @@
 //  which is included in the file license.txt, found at the root
 //  of the RDKit source tree.
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #pragma once
 #include <list>
 #include <vector>
@@ -26,10 +26,10 @@ class RDKIT_FMCS_EXPORT SubstructureCache {
 #pragma pack(push, 1)
   struct KeyNumericMetrics {
     typedef unsigned long long TValue;
-    TValue Value;
+    TValue Value{0};
 
    public:
-    KeyNumericMetrics() : Value(0) {}
+    KeyNumericMetrics()  {}
   };
 #pragma pack(pop)
 
@@ -66,9 +66,9 @@ class RDKIT_FMCS_EXPORT SubstructureCache {
           const Bond* bond = seed.MoleculeFragment.Bonds[seedBondIdx];
           unsigned order =
               queryBondLabels[seed.MoleculeFragment.BondsIdx[seedBondIdx]];
-          unsigned atom1 =
-              seed.MoleculeFragment.SeedAtomIdxMap.find(bond->getBeginAtomIdx())
-                  ->second;
+          unsigned atom1 = seed.MoleculeFragment.SeedAtomIdxMap
+                               .find(bond->getBeginAtomIdx())
+                               ->second;
           unsigned atom2 =
               seed.MoleculeFragment.SeedAtomIdxMap.find(bond->getEndAtomIdx())
                   ->second;
@@ -125,7 +125,7 @@ class RDKIT_FMCS_EXPORT SubstructureCache {
     std::map<KeyNumericMetrics::TValue, size_t>::const_iterator entryit =
         NumericIndex.find(key.NumericMetrics.Value);
     if (NumericIndex.end() != entryit) return &ValueStorage[entryit->second];
-    return NULL;  // not found
+    return nullptr;  // not found
   }
 
   // if find() did not found any entry for this key of seed a new entry will be
@@ -135,19 +135,20 @@ class RDKIT_FMCS_EXPORT SubstructureCache {
                                   // if not found
     if (!entry) {
       try {
-        ValueStorage.push_back(TIndexEntry());
+        ValueStorage.emplace_back();
       } catch (...) {
-        return;  // not enought memory room to add the item, but it's just a
+        return;  // not enough memory room to add the item, but it's just a
                  // cache
       }
       entry = &ValueStorage.back();
     }
     entry->push_back(seed.Topology);
 
-    if (!NumericIndex.insert(std::pair<KeyNumericMetrics::TValue, size_t>(
-                                 key.NumericMetrics.Value,
-                                 ValueStorage.size() - 1)).second)
-      return;  // not enought memory room to add the item, but it is just cache
+    if (!NumericIndex
+             .insert(std::pair<KeyNumericMetrics::TValue, size_t>(
+                 key.NumericMetrics.Value, ValueStorage.size() - 1))
+             .second)
+      return;  // not enough memory room to add the item, but it is just cache
   }
 
   size_t keyssize() const {  // for statistics only
@@ -162,5 +163,5 @@ class RDKIT_FMCS_EXPORT SubstructureCache {
     return n;
   }
 };
-}
-}
+}  // namespace FMCS
+}  // namespace RDKit

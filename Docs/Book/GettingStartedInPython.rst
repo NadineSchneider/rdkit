@@ -1,7 +1,12 @@
 Getting Started with the RDKit in Python
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+Important note
+**************
 
+Beginning with the 2019.03 release, the RDKit is no longer supporting Python 2.
+If you need to continue using Python 2, please stick with a release from the 2018.09
+release cycle.
 
 What is this?
 *************
@@ -24,11 +29,17 @@ Reading and Writing Molecules
 Reading single molecules
 ========================
 
+.. testsetup::
+  
+  # clean up in case these tests are running in a python process that has already
+  # imported the IPythonConsole code
+  from rdkit.Chem.Draw import IPythonConsole
+  IPythonConsole.UninstallIPythonRenderer()
+
 The majority of the basic molecular functionality is found in module :py:mod:`rdkit.Chem`:
 
 .. doctest::
 
-  >>> from __future__ import print_function
   >>> from rdkit import Chem
 
 Individual molecules can be constructed using a variety of approaches:
@@ -270,22 +281,22 @@ You can either include 2D coordinates (i.e. a depiction):
   M  END
   <BLANKLINE>
 
-Or you can add 3D coordinates by embedding the molecule (we're using the ETKDG
-method here, which is described in more detail below):
+Or you can add 3D coordinates by embedding the molecule (this uses the ETKDG
+method, which is described in more detail below):
 
 .. doctest::
 
-  >>> AllChem.EmbedMolecule(m2,AllChem.ETKDG())
+  >>> AllChem.EmbedMolecule(m2,randomSeed=0xf00d)   # optional random seed for reproducibility)
   0
   >>> print(Chem.MolToMolBlock(m2))    # doctest: +NORMALIZE_WHITESPACE
   cyclobutane
        RDKit          3D
   <BLANKLINE>
     4  4  0  0  0  0  0  0  0  0999 V2000
-     -0.8321    0.5405   -0.1981 C   0  0  0  0  0  0  0  0  0  0  0  0
-     -0.3467   -0.8825   -0.2651 C   0  0  0  0  0  0  0  0  0  0  0  0
-      0.7190   -0.5613    0.7314 C   0  0  0  0  0  0  0  0  0  0  0  0
-      0.4599    0.9032    0.5020 C   0  0  0  0  0  0  0  0  0  0  0  0
+     -0.7372   -0.6322   -0.4324 C   0  0  0  0  0  0  0  0  0  0  0  0
+     -0.4468    0.8555   -0.5229 C   0  0  0  0  0  0  0  0  0  0  0  0
+      0.8515    0.5725    0.2205 C   0  0  0  0  0  0  0  0  0  0  0  0
+      0.3326   -0.7959    0.6107 C   0  0  0  0  0  0  0  0  0  0  0  0
     1  2  1  0
     2  3  1  0
     3  4  1  0
@@ -299,7 +310,7 @@ hydrogens to the molecule first:
 .. doctest::
 
   >>> m3 = Chem.AddHs(m2)
-  >>> AllChem.EmbedMolecule(m3,AllChem.ETKDG())
+  >>> AllChem.EmbedMolecule(m3,randomSeed=0xf00d)   # optional random seed for reproducibility)
   0
 
 These can then be removed:
@@ -312,10 +323,10 @@ These can then be removed:
        RDKit          3D
   <BLANKLINE>
     4  4  0  0  0  0  0  0  0  0999 V2000
-      0.3497    0.9755   -0.2202 C   0  0  0  0  0  0  0  0  0  0  0  0
-      0.9814   -0.3380    0.2534 C   0  0  0  0  0  0  0  0  0  0  0  0
-     -0.3384   -1.0009   -0.1474 C   0  0  0  0  0  0  0  0  0  0  0  0
-     -0.9992    0.3532    0.1458 C   0  0  0  0  0  0  0  0  0  0  0  0
+      1.0256    0.2491   -0.0964 C   0  0  0  0  0  0  0  0  0  0  0  0
+     -0.2041    0.9236    0.4320 C   0  0  0  0  0  0  0  0  0  0  0  0
+     -1.0435   -0.2466   -0.0266 C   0  0  0  0  0  0  0  0  0  0  0  0
+      0.2104   -0.9922   -0.3417 C   0  0  0  0  0  0  0  0  0  0  0  0
     1  2  1  0
     2  3  1  0
     3  4  1  0
@@ -581,10 +592,11 @@ like to align them to that template, you can do so as follows:
   >>> template = Chem.MolFromSmiles('c1nccc2n1ccc2')
   >>> AllChem.Compute2DCoords(template)
   0
-  >>> AllChem.GenerateDepictionMatching2DStructure(m,template)
+  >>> ms = [Chem.MolFromSmiles(smi) for smi in ('OCCc1ccn2cnccc12','C1CC1Oc1cc2ccncn2c1','CNC(=O)c1nccc2cccn12')]
+  >>> for m in ms:
+  ...     AllChem.GenerateDepictionMatching2DStructure(m,template)
 
-Running this process for a couple of other molecules gives the
-following depictions:
+Running this process for the molecules above gives:
 
 +---------------+---------------+---------------+
 | |picture_1|   | |picture_0|   | |picture_3|   |
@@ -634,20 +646,14 @@ distance geometry has been used to generate them.  With this method,
 there should be no need to use a minimisation step to clean up the
 structures.
 
-The full process of embedding and optimizing a molecule is easier than all the above verbiage makes it sound:
+Since the 2018.09 release of the RDKit, ETKDG is the default conformation generation method.
+
+The full process of embedding a molecule is easier than all the above verbiage makes it sound:
 
 .. doctest::
 
-  >>> m = Chem.MolFromSmiles('C1CCC1OC')
   >>> m2=Chem.AddHs(m)
-  >>> # use the original distance geometry + minimisation method
   >>> AllChem.EmbedMolecule(m2)
-  0
-  >>> AllChem.UFFOptimizeMolecule(m2)
-  0
-  >>> m3=Chem.AddHs(m)
-  >>> # use the new method
-  >>> AllChem.EmbedMolecule(m3, AllChem.ETKDG())
   0
 
 The RDKit also has an implementation of the MMFF94 force field available. [#mmff1]_, [#mmff2]_, [#mmff3]_, [#mmff4]_, [#mmffs]_
@@ -655,6 +661,7 @@ Please note that the MMFF atom typing code uses its own aromaticity model,
 so the aromaticity flags of the molecule will be modified after calling
 MMFF-related methods.
 
+Here's an example of using MMFF94 to minimize an RDKit-generated conformer:
 .. doctest::
 
   >>> m = Chem.MolFromSmiles('C1CCC1OC')
@@ -670,10 +677,10 @@ but they are important for getting realistic geometries, so they
 generally should be added.  They can always be removed afterwards
 if necessary with a call to `Chem.RemoveHs()`.
 
-With the RDKit, multiple conformers can also be generated using the two
+With the RDKit, multiple conformers can also be generated using the
 different embedding methods. In both cases this is simply a matter of
 running the distance geometry calculation multiple times from
-different random start points. The option numConfs allows the user to
+different random start points. The option `numConfs` allows the user to
 set the number of conformers that should be generated.  Otherwise the
 procedures are as before. The conformers so generated can be aligned
 to each other and the RMS values calculated.
@@ -682,12 +689,10 @@ to each other and the RMS values calculated.
 
   >>> m = Chem.MolFromSmiles('C1CCC1OC')
   >>> m2=Chem.AddHs(m)
-  >>> # run distance geometry 10 times
+  >>> # run ETKDG 10 times
   >>> cids = AllChem.EmbedMultipleConfs(m2, numConfs=10)
   >>> print(len(cids))
   10
-  >>> for cid in cids:
-  ...    _ = AllChem.MMFFOptimizeMolecule(m2, confId=cid)
   >>> rmslist = []
   >>> AllChem.AlignMolConformers(m2, RMSlist=rmslist)
   >>> print(len(rmslist))
@@ -702,22 +707,33 @@ The flag prealigned lets the user specify if the conformers are already aligned
 
   >>> rms = AllChem.GetConformerRMS(m2, 1, 9, prealigned=True)
 
-We can also generate multiple conformers using the new CSD-based method:
+If you are interested in running MMFF94 on a molecule's conformers (note that
+this is often not necessary when using ETKDG), there's a convenience
+function available:
 
 .. doctest::
 
-  >>> m = Chem.MolFromSmiles('C1CCC1OC')
-  >>> m3=Chem.AddHs(m)
-  >>> # run the new CSD-based method
-  >>> cids = AllChem.EmbedMultipleConfs(m3, 10, AllChem.ETKDG())
-  >>> print(len(cids))
-  10
+  >>> res = AllChem.MMFFOptimizeMoleculeConfs(m2)
 
-More 3D functionality of the RDKit is described in the Cookbook.
+The result is a list a containing 2-tuples: `(not_converged, energy)` for
+each conformer. If `not_converged` is 0, the minimization for that conformer
+converged.
 
+By default `AllChem.EmbedMultipleConfs` and `AllChem.MMFFOptimizeMoleculeConfs()`
+run single threaded, but you can cause them to use
+multiple threads simultaneously for these embarassingly parallel tasks
+via the `numThreads` argument:
+
+.. doctest::
+
+  >>> cids = AllChem.EmbedMultipleConfs(m2, numThreads=0)
+  >>> res = AllChem.MMFFOptimizeMoleculeConfs(m2, numThreads=0)
+
+Setting `numThreads` to zero causes the software to use the maximum number
+of threads allowed on your computer.
 
 *Disclaimer/Warning*: Conformation generation is a difficult and subtle task.
-The original, default, 2D->3D conversion provided with the RDKit is not intended
+The original 2D->3D conversion provided with the RDKit was not intended
 to be a replacement for a “real” conformational analysis tool; it
 merely provides quick 3D structures for cases when they are
 required. We believe, however, that the newer ETKDG method[#riniker2]_ should be
@@ -781,8 +797,8 @@ molecules found in the :py:mod:`rdkit.Chem.Draw` package:
   >>> ms = [x for x in suppl if x is not None]
   >>> for m in ms: tmp=AllChem.Compute2DCoords(m)
   >>> from rdkit.Chem import Draw
-  >>> Draw.MolToFile(ms[0],'images/cdk2_mol1.o.png')
-  >>> Draw.MolToFile(ms[1],'images/cdk2_mol2.o.png')
+  >>> Draw.MolToFile(ms[0],'images/cdk2_mol1.o.png')    # doctest: +SKIP
+  >>> Draw.MolToFile(ms[1],'images/cdk2_mol2.o.png')    # doctest: +SKIP
 
 Producing these images:
 
@@ -794,13 +810,13 @@ It's also possible to produce an image grid out of a set of molecules:
 
 .. doctest::
 
-  >>> img=Draw.MolsToGridImage(ms[:8],molsPerRow=4,subImgSize=(200,200),legends=[x.GetProp("_Name") for x in ms[:8]])
+  >>> img=Draw.MolsToGridImage(ms[:8],molsPerRow=4,subImgSize=(200,200),legends=[x.GetProp("_Name") for x in ms[:8]])    # doctest: +SKIP
 
 This returns a PIL image, which can then be saved to a file:
 
 .. doctest::
 
-  >>> img.save('images/cdk2_molgrid.o.png')
+  >>> img.save('images/cdk2_molgrid.o.png')    # doctest: +SKIP
 
 The result looks like this:
 
@@ -818,16 +834,139 @@ aligned. This is easy enough to do:
   >>> AllChem.Compute2DCoords(p)
   0
   >>> for m in subms: AllChem.GenerateDepictionMatching2DStructure(m,p)
-  >>> img=Draw.MolsToGridImage(subms,molsPerRow=4,subImgSize=(200,200),legends=[x.GetProp("_Name") for x in subms])
-  >>> img.save('images/cdk2_molgrid.aligned.o.png')
+  >>> img=Draw.MolsToGridImage(subms,molsPerRow=4,subImgSize=(200,200),legends=[x.GetProp("_Name") for x in subms])    # doctest: +SKIP
+  >>> img.save('images/cdk2_molgrid.aligned.o.png')    # doctest: +SKIP
 
 
 The result looks like this:
 
 .. image:: images/cdk2_molgrid_aligned.png
 
+Atoms in a molecule can be highlighted by drawing a coloured solid or
+open circle around them, and bonds likewise can have a coloured
+outline applied.  An obvious use is to show atoms and bonds that have
+matched a substructure query
 
+.. doctest::
+   
+   >>> from rdkit.Chem.Draw import rdMolDraw2D
+   >>> smi = 'c1cc(F)ccc1Cl'
+   >>> mol = Chem.MolFromSmiles(smi)
+   >>> patt = Chem.MolFromSmarts('ClccccF')
+   >>> hit_ats = list(mol.GetSubstructMatch(patt))
+   >>> hit_bonds = []
+   >>> for bond in patt.GetBonds():
+   ...    aid1 = hit_ats[bond.GetBeginAtomIdx()]
+   ...    aid2 = hit_ats[bond.GetEndAtomIdx()]
+   ...    hit_bonds.append(mol.GetBondBetweenAtoms(aid1,aid2).GetIdx())
+   >>> d = rdMolDraw2D.MolDraw2DSVG(500, 500) # or MolDraw2DCairo to get PNGs
+   >>> rdMolDraw2D.PrepareAndDrawMolecule(d, mol, highlightAtoms=hit_ats,
+   ...                                    highlightBonds=hit_bonds)
 
+will produce:
+
+.. image:: images/atom_highlights_1.png
+
+It is possible to specify the colours for individual atoms and bonds:
+
+.. doctest::
+   
+   >>> colours = [(0.8,0.0,0.8),(0.8,0.8,0),(0,0.8,0.8),(0,0,0.8)]
+   >>> atom_cols = {}
+   >>> for i, at in enumerate(hit_ats):
+   ...     atom_cols[at] = colours[i%4]
+   >>> bond_cols = {}
+   >>> for i, bd in enumerate(hit_bonds):
+   ...     bond_cols[bd] = colours[3 - i%4]
+   >>> 
+   >>> d = rdMolDraw2D.MolDraw2DCairo(500, 500)
+   >>> rdMolDraw2D.PrepareAndDrawMolecule(d, mol, highlightAtoms=hit_ats,
+   ...                                    highlightAtomColors=atom_cols,
+   ...                                    highlightBonds=hit_bonds,
+   ...                                    highlightBondColors=bond_cols)
+
+to give:
+
+.. image:: images/atom_highlights_2.png
+
+Atoms and bonds can also be highlighted with multiple colours if they
+fall into multiple sets, for example if they are matched by more
+than 1 substructure pattern.  This is too complicated to show in this
+simple introduction, but there is an example in
+data/test_multi_colours.py, which produces the somewhat garish
+
+.. image:: images/atom_highlights_3.png
+
+As of version 2020.03, it is possible to add arbitrary small strings
+to annotate atoms and bonds in the drawing.  The strings are added as
+properties 'atomNote' and
+'bondNote' and they will be placed automatically
+close to the atom or bond in question in a manner intended to minimise
+their clash with the rest of the drawing.  For convenience, here are 3
+flags in 
+`MolDraw2DOptions` that will add stereo information (R/S to atoms, E/Z
+to bonds) and atom and bond sequence numbers.
+
+.. doctest::
+   
+   >>> mol = Chem.MolFromSmiles('Cl[C@H](F)NC\C=C\C')
+   >>> d = rdMolDraw2D.MolDraw2DCairo(250, 200) # or MolDraw2DSVG to get SVGs
+   >>> mol.GetAtomWithIdx(2).SetProp('atomNote', 'foo')
+   >>> mol.GetBondWithIdx(0).SetProp('bondNote', 'bar')
+   >>> d.drawOptions().addStereoAnnotation = True
+   >>> d.drawOptions().addAtomIndices = True
+   >>> d.DrawMolecule(mol)
+   >>> d.FinishDrawing()
+   >>> with open('atom_annotation_1.png', 'wb') as f:   # doctest: +SKIP
+   ...     f.write(d.GetDrawingText())
+
+will produce
+
+.. image:: images/atom_annotation_1.png
+
+Metadata in Molecule Images
+===========================
+
+*New in 2020.03 release*
+
+The PNG files generated by the `MolDraw2DCairo` class by default include
+metadata about the molecule(s) or chemical reaction included in the drawing.
+This metadata can be used later to reconstruct the molecule(s) or reaction.
+
+.. doctest::
+
+  >>> template = Chem.MolFromSmiles('c1nccc2n1ccc2')
+  >>> AllChem.Compute2DCoords(template)
+  0
+  >>> ms = [Chem.MolFromSmiles(smi) for smi in ('OCCc1ccn2cnccc12','C1CC1Oc1cc2ccncn2c1','CNC(=O)c1nccc2cccn12')]
+  >>> _ = [AllChem.GenerateDepictionMatching2DStructure(m,template) for m in ms]
+  >>> d = rdMolDraw2D.MolDraw2DCairo(250, 200) 
+  >>> d.DrawMolecule(ms[0])
+  >>> d.FinishDrawing()
+  >>> png = d.GetDrawingText()
+  >>> mol = Chem.MolFromPNGString(png)
+  >>> Chem.MolToSmiles(mol)      
+  'OCCc1c2ccncn2cc1'
+
+The molecular metadata is stored using standard metadata tags in the PNG and is,
+of course, not visible when you look at the PNG:
+
+.. image:: images/mol_metadata1.png
+
+If the PNG contains multiple molecules we can retrieve them all at once using
+`Chem.MolsFromPNGString()`:
+
+.. doctest::
+
+  >>> from rdkit.Chem import Draw
+  >>> png = Draw.MolsToGridImage(ms,returnPNG=True)
+  >>> mols = Chem.MolsFromPNGString(png)
+  >>> for mol in mols:
+  ...     print(Chem.MolToSmiles(mol))
+  ...  
+  OCCc1c2ccncn2cc1
+  c1cc2cc(OC3CC3)cn2cn1
+  CNC(=O)c1nccc2cccn12
 
 Substructure Searching
 **********************
@@ -976,6 +1115,95 @@ matching atoms like this:
   ...     print(mas)
   [1, 7, 8, 10]
 
+
+Advanced substructure matching
+==============================
+
+Starting with the 2020.03 release, the RDKit allows you to provide an optional 
+function that is used to check whether or not a possible substructure match should
+be accepted. This function is called with the molecule to be matched and the indices
+of the matching atoms.
+
+Here's an example of how you can use the functionality to do "Markush-like" matching,
+requiring that all atoms in a sidechain are either carbon (type "all_carbon") or aren't 
+aromatic (type "alkyl"). We start by defining the class that we'll use to test the 
+sidechains:
+
+.. testcode::
+
+  from rdkit import Chem
+
+  class SidechainChecker(object):
+    matchers = {
+      'alkyl': lambda at: not at.GetIsAromatic(),
+      'all_carbon': lambda at: at.GetAtomicNum() == 6
+    }
+
+    def __init__(self, query, pName="queryType"):
+      # identify the atoms that have the properties we care about
+      self._atsToExamine = [(x.GetIdx(), x.GetProp(pName)) for x in query.GetAtoms()
+                            if x.HasProp(pName)]
+      self._pName = pName
+
+    def __call__(self, mol, vect):
+      seen = [0] * mol.GetNumAtoms()
+      for idx in vect:
+        seen[idx] = 1
+      # loop over the atoms we care about:
+      for idx, qtyp in self._atsToExamine:
+        midx = vect[idx]
+        stack = [midx]
+        atom = mol.GetAtomWithIdx(midx)
+        # now do a breadth-first search from that atom, checking
+        # all of its neighbors that aren't in the substructure 
+        # query:
+        stack = [atom]
+        while stack:
+          atom = stack.pop(0)
+          if not self.matchers[qtyp](atom):
+            return False
+          seen[atom.GetIdx()] = 1
+          for nbr in atom.GetNeighbors():
+            if not seen[nbr.GetIdx()]:
+              stack.append(nbr)
+      return True
+
+
+Here's the molecule we'll use:
+
+.. image:: images/substruct_search_parameters1.png
+
+And the default behavior:
+
+.. doctest::
+
+  >>> m = Chem.MolFromSmiles('C2NCC2CC1C(CCCC)C(OCCCC)C1c2ccccc2')
+  >>> p = Chem.MolFromSmarts('C1CCC1*')
+  >>> p.GetAtomWithIdx(4).SetProp("queryType", "all_carbon")
+  >>> m.GetSubstructMatches(p)
+  ((5, 6, 11, 17, 18), (5, 17, 11, 6, 7), (6, 5, 17, 11, 12), (6, 11, 17, 5, 4))
+
+Now let's add the final check to filter the results:
+
+.. doctest::
+
+  >>> params = Chem.SubstructMatchParameters()
+  >>> checker = SidechainChecker(p)
+  >>> params.setExtraFinalCheck(checker)
+  >>> m.GetSubstructMatches(p,params)
+  ((5, 6, 11, 17, 18), (5, 17, 11, 6, 7))
+
+Repeat that using the 'alkyl' query:
+
+.. doctest::
+
+  >>> p.GetAtomWithIdx(4).SetProp("queryType", "alkyl")
+  >>> checker = SidechainChecker(p)
+  >>> params.setExtraFinalCheck(checker)
+  >>> m.GetSubstructMatches(p,params)
+  ((5, 17, 11, 6, 7), (6, 5, 17, 11, 12), (6, 11, 17, 5, 4))
+
+
 Chemical Transformations
 ************************
 
@@ -1117,7 +1345,7 @@ match if they have the same bond type. Specify ``atomCompare`` and
 
   >>> mols = (Chem.MolFromSmiles('NCC'),Chem.MolFromSmiles('OC=C'))
   >>> rdFMCS.FindMCS(mols).smartsString
-  ''
+  '[#6]'
   >>> rdFMCS.FindMCS(mols, atomCompare=rdFMCS.AtomCompare.CompareAny).smartsString
   '[#7,#8]-[#6]'
   >>> rdFMCS.FindMCS(mols, bondCompare=rdFMCS.BondCompare.CompareAny).smartsString
@@ -1138,7 +1366,7 @@ requires an exact order match otherwise:
   >>> rdFMCS.FindMCS(mols,bondCompare=rdFMCS.BondCompare.CompareAny).smartsString
   '[#6]1:,-[#6]:,-[#6]:,-[#6]:,-[#6]:,=[#6]:,-1'
   >>> rdFMCS.FindMCS(mols,bondCompare=rdFMCS.BondCompare.CompareOrderExact).smartsString
-  ''
+  '[#6]'
   >>> rdFMCS.FindMCS(mols,bondCompare=rdFMCS.BondCompare.CompareOrder).smartsString
   '[#6](:,-[#6]:,-[#6]:,-[#6]):,-[#6]:,-[#6]'
 
@@ -1171,13 +1399,15 @@ you set it to True then ring bonds will only match ring bonds.
   >>> rdFMCS.FindMCS(mols).smartsString
   '[#6](-[#6]-[#6])-[#6]-[#6]-[#6]-[#6]'
   >>> rdFMCS.FindMCS(mols, ringMatchesRingOnly=True).smartsString
-  '[#6](-[#6]-[#6])-[#6]'
+  '[#6&R](-&@[#6&R]-&@[#6&R])-&@[#6&R]'
+
+Notice that the SMARTS returned now include ring queries on the atoms and bonds.
 
 You can further restrict things and require that partial rings (as in
 this case) are not allowed. That is, if an atom is part of the MCS and
 the atom is in a ring of the entire molecule then that atom is also in
-a ring of the MCS. Set ``completeRingsOnly`` to True to toggle this
-requirement and also sets ringMatchesRingOnly to True.
+a ring of the MCS. Setting ``completeRingsOnly`` to True toggles this
+requirement.
 
 .. doctest::
 
@@ -1185,9 +1415,25 @@ requirement and also sets ringMatchesRingOnly to True.
   >>> rdFMCS.FindMCS(mols).smartsString
   '[#6]1-[#6]-[#6](-[#6]-1-[#6])-[#6]'
   >>> rdFMCS.FindMCS(mols, ringMatchesRingOnly=True).smartsString
-  '[#6](-[#6]-[#6]-[#6]-[#6])-[#6]'
+  '[#6&R](-&@[#6&R]-&@[#6&R]-&@[#6&R]-&@[#6&R])-&@[#6&R]'
   >>> rdFMCS.FindMCS(mols, completeRingsOnly=True).smartsString
-  '[#6]1-[#6]-[#6]-[#6]-1'
+  '[#6]1-&@[#6]-&@[#6]-&@[#6]-&@1'
+
+Of course the two options can be combined with each other:
+
+.. doctest::
+
+  >>> ms = [Chem.MolFromSmiles(x) for x in ('CC1CCC1','CCC1CC1',)]                                                                                                      
+  >>> rdFMCS.FindMCS(ms,ringMatchesRingOnly=True).smartsString                                                                                                          
+  '[#6&!R]-&!@[#6&R](-&@[#6&R])-&@[#6&R]'
+  >>> rdFMCS.FindMCS(ms,completeRingsOnly=True).smartsString                                                                                                            
+  '[#6]-&!@[#6]'
+  >>> rdFMCS.FindMCS(ms,ringMatchesRingOnly=True,completeRingsOnly=True).smartsString                                                                                   
+  '[#6&!R]-&!@[#6&R]'
+
+
+
+
 
 The MCS algorithm will exhaustively search for a maximum common substructure.
 Typically this takes a fraction of a second, but for some comparisons this
@@ -1218,10 +1464,9 @@ Topological Fingerprints
 .. doctest::
 
   >>> from rdkit import DataStructs
-  >>> from rdkit.Chem.Fingerprints import FingerprintMols
   >>> ms = [Chem.MolFromSmiles('CCOC'), Chem.MolFromSmiles('CCO'),
   ... Chem.MolFromSmiles('COC')]
-  >>> fps = [FingerprintMols.FingerprintMol(x) for x in ms]
+  >>> fps = [Chem.RDKFingerprint(x) for x in ms]
   >>> DataStructs.FingerprintSimilarity(fps[0],fps[1])
   0.6...
   >>> DataStructs.FingerprintSimilarity(fps[0],fps[2])
@@ -1229,10 +1474,7 @@ Topological Fingerprints
   >>> DataStructs.FingerprintSimilarity(fps[1],fps[2])
   0.25
 
-The fingerprinting algorithm used is similar to that used in the
-Daylight fingerprinter: it identifies and hashes topological paths
-(e.g. along bonds) in the molecule and then uses them to set bits in a
-fingerprint of user-specified lengths. After all paths have been identified, the fingerprint is typically folded down until a particular density of set bits is obtained.
+More details about the algorithm used for the RDKit fingerprint can be found in the "RDKit Book".
 
 The default set of parameters used by the fingerprinter is:
 - minimum path size: 1 bond
@@ -1240,11 +1482,10 @@ The default set of parameters used by the fingerprinter is:
 - fingerprint size: 2048 bits
 - number of bits set per hash: 2
 - minimum fingerprint size: 64 bits
-- target on-bit density 0.3
+- target on-bit density 0.0
 
-You can control these by calling
-:py:func:`rdkit.Chem.rdmolops.RDKFingerprint` directly; this will return
-an unfolded fingerprint that you can then fold to the desired density.
+You can control these when calling
+:py:func:`rdkit.Chem.rdmolops.RDKFingerprint`.
 The function
 :py:func:`rdkit.Chem.Fingerprints.FingerprintMols.FingerprintMol` (written
 in python) shows how this is done.
@@ -1491,7 +1732,7 @@ of all atoms within a radius of 2 of atom 5:
   >>> submol.GetNumAtoms()
   6
   >>> amap
-  {0: 3, 1: 5, 3: 4, 4: 0, 5: 1, 6: 2}
+  {0: 0, 1: 1, 3: 2, 4: 3, 5: 4, 6: 5}
 
 And then “explain” the bit by generating SMILES for that submolecule:
 
@@ -1505,7 +1746,7 @@ This is more useful when the SMILES is rooted at the central atom:
 .. doctest::
 
   >>> Chem.MolToSmiles(submol,rootedAtAtom=amap[5],canonical=False)
-  'c(nc)(C)cc'
+  'c(cc)(nc)C'
 
 An alternate (and faster, particularly for large numbers of molecules)
 approach to do the same thing, using the function :py:func:`rdkit.Chem.MolFragmentToSmiles` :
@@ -1519,6 +1760,63 @@ approach to do the same thing, using the function :py:func:`rdkit.Chem.MolFragme
   ...
   >>> Chem.MolFragmentToSmiles(m,atomsToUse=list(atoms),bondsToUse=env,rootedAtAtom=5)
   'c(C)(cc)nc'
+
+Generating images of fingerprint bits
+=====================================
+
+For the Morgan and RDKit fingerprint types, it's possible to generate images of
+the atom environment that defines the bit using the functions
+:py:func:`rdkit.Chem.Draw.DrawMorganBit()` and :py:func:`rdkit.Chem.Draw.DrawRDKitBit()`
+
+.. doctest::
+
+  >>> from rdkit.Chem import Draw
+  >>> mol = Chem.MolFromSmiles('c1ccccc1CC1CC1')
+  >>> bi = {}
+  >>> fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, bitInfo=bi)
+  >>> bi[872]
+  ((6, 2),)
+  >>> mfp2_svg = Draw.DrawMorganBit(mol, 872, bi, useSVG=True)
+  >>> rdkbi = {}
+  >>> rdkfp = Chem.RDKFingerprint(mol, maxPath=5, bitInfo=rdkbi)
+  >>> rdkbi[1553]
+  [[0, 1, 9, 5, 4], [2, 3, 4, 9, 5]]
+  >>> rdk_svg = Draw.DrawRDKitBit(mol, 1553, rdkbi, useSVG=True)
+
+Producing these images:
+
++-----------------------------------+-----------------------------------+
+| .. image:: images/mfp2_bit872.svg | .. image:: images/rdk_bit1553.svg |
++-----------------------------------+-----------------------------------+
+|         Morgan bit                |            RDKit bit              |
++-----------------------------------+-----------------------------------+
+
+The default highlight colors for the Morgan bits indicate:
+
+  - blue: the central atom in the environment
+  - yellow: aromatic atoms
+  - gray: aliphatic ring atoms
+
+The default highlight colors for the RDKit bits indicate:
+
+  - yellow: aromatic atoms
+
+Note that in cases where the same bit is set by multiple atoms in the molecule
+(as for bit 1553 for the RDKit fingerprint in the example above), the drawing
+functions will display the first example. You can change this by specifying which
+example to show:
+
+.. doctest::
+
+  >>> rdk_svg = Draw.DrawRDKitBit(mol, 1553, rdkbi, whichExample=1, useSVG=True)
+
+Producing this image:
+
++-------------------------------------+
+| .. image:: images/rdk_bit1553_2.svg |
++-------------------------------------+
+|            RDKit bit                |
++-------------------------------------+
 
 
 Picking Diverse Molecules Using Fingerprints
@@ -1668,7 +1966,7 @@ Partial charges are handled a bit differently:
 
   >>> m = Chem.MolFromSmiles('c1ccccc1C(=O)O')
   >>> AllChem.ComputeGasteigerCharges(m)
-  >>> float(m.GetAtomWithIdx(0).GetProp('_GasteigerCharge'))
+  >>> m.GetAtomWithIdx(0).GetDoubleProp('_GasteigerCharge')
   -0.047...
 
 
@@ -1685,7 +1983,7 @@ The Gasteiger partial charges can be visualized as (using a different color sche
   >>> from rdkit.Chem.Draw import SimilarityMaps
   >>> mol = Chem.MolFromSmiles('COc1cccc2cc(C(=O)NCCCCN3CCN(c4cccc5nccnc54)CC3)oc21')
   >>> AllChem.ComputeGasteigerCharges(mol)
-  >>> contribs = [float(mol.GetAtomWithIdx(i).GetProp('_GasteigerCharge')) for i in range(mol.GetNumAtoms())]
+  >>> contribs = [mol.GetAtomWithIdx(i).GetDoubleProp('_GasteigerCharge') for i in range(mol.GetNumAtoms())]
   >>> fig = SimilarityMaps.GetSimilarityMapFromWeights(mol, contribs, colorMap='jet', contourLines=10)
 
 Producing this image:
@@ -1794,6 +2092,45 @@ demonstrates:
   rdkit.Chem.rdmolops.SanitizeFlags.SANITIZE_NONE
   >>> Chem.MolToSmiles(p0)
   'c1ccccc1'
+
+Drawing Chemical Reactions
+==========================
+
+The RDKit's MolDraw2D-based rendering can also handle chemical reactions.
+
+.. doctest::
+
+  >>> from rdkit.Chem import Draw
+  >>> rxn = AllChem.ReactionFromSmarts('[cH:5]1[cH:6][c:7]2[cH:8][n:9][cH:10][cH:11][c:12]2[c:3]([cH:4]1)[C:2](=[O:1])O.[N-:13]=[N+:14]=[N-:15]>C(Cl)Cl.C(=O)(C(=O)Cl)Cl>[cH:5]1[cH:6][c:7]2[cH:8][n:9][cH:10][cH:11][c:12]2[c:3]([cH:4]1)[C:2](=[O:1])[N:13]=[N+:14]=[N-:15]',useSmiles=True)
+  >>> d2d = Draw.MolDraw2DCairo(800,300)
+  >>> d2d.DrawReaction(rxn)
+  >>> png = d2d.GetDrawingText()
+  >>> open('./images/reaction1.o.png','wb+').write(png)     # doctest: +SKIP
+
+the result looks like this:
+
+.. image:: images/reaction1.png
+
+There's another drawing mode which leaves out the atom map information but which
+highlights which of the reactants atoms in the products come from:
+
+.. doctest::
+
+  >>> d2d = Draw.MolDraw2DCairo(800,300)
+  >>> d2d.DrawReaction(rxn,highlightByReactant=True)
+  >>> png = d2d.GetDrawingText()
+  >>> open('./images/reaction1_highlight.o.png','wb+').write(png)    # doctest: +SKIP
+
+.. image:: images/reaction1_highlight.png
+
+As of the 2020.09 release, PNG images of reactions include metadata allowing the
+reaction to be reconstructed:
+
+.. doctest::
+
+  >>> newRxn = AllChem.ReactionFromPNGString(png)
+  >>> AllChem.ReactionToSmarts(newRxn)
+  '[#6H:5]1:[#6H:6]:[#6:7]2:[#6H:8]:[#7:9]:[#6H:10]:[#6H:11]:[#6:12]:2:[#6:3](:[#6H:4]:1)-[#6:2](=[#8:1])-[#8].[#7-:13]=[#7+:14]=[#7-:15]>[#6](-[#17])-[#17].[#6](=[#8])(-[#6](=[#8])-[#17])-[#17]>[#6H:5]1:[#6H:6]:[#6:7]2:[#6H:8]:[#7:9]:[#6H:10]:[#6H:11]:[#6:12]:2:[#6:3](:[#6H:4]:1)-[#6:2](=[#8:1])-[#7:13]=[#7+:14]=[#7-:15]'
 
 Advanced Reaction Functionality
 ===============================
@@ -1950,6 +2287,7 @@ set of fragments to create new molecules:
   >>> import random
   >>> random.seed(127)
   >>> fragms = [Chem.MolFromSmiles(x) for x in sorted(allfrags)]
+  >>> random.seed(0xf00d)
   >>> ms = BRICS.BRICSBuild(fragms)
 
 The result is a generator object:
@@ -1973,13 +2311,31 @@ The molecules have not been sanitized, so it's a good idea to at least update th
 
   >>> for prod in prods:
   ...     prod.UpdatePropertyCache(strict=False)
+  ...  
+  >>> Chem.MolToSmiles(prods[0],True)
+  'CC(C)C(=O)N/C=C1\\C(=O)Nc2ccc3ncsc3c21'
+  >>> Chem.MolToSmiles(prods[1],True)
+  'CC(C)C(=O)N/C=C1\\C(=O)Nc2ccccc21'
+  >>> Chem.MolToSmiles(prods[2],True)
+  'CNC(=O)C(C)C'
+
+
+By default those results come back in a random order (technically the example
+above will always return the same results since we seeded Python's random number
+generator just before calling BRICSBuild()). If you want the results to be
+returned in a consistent order use the scrambleReagents argument:
+
+  >>> ms = BRICS.BRICSBuild(fragms, scrambleReagents=False)
+  >>> prods = [next(ms) for x in range(10)]
+  >>> for prod in prods:
+  ...     prod.UpdatePropertyCache(strict=False)
   ...
   >>> Chem.MolToSmiles(prods[0],True)
-  'COCCO'
+  'COC(=O)C(C)C'
   >>> Chem.MolToSmiles(prods[1],True)
-  'O=C1Nc2ccc3ncsc3c2/C1=C/NCCO'
+  'CNC(=O)C(C)C'
   >>> Chem.MolToSmiles(prods[2],True)
-  'O=C1Nc2ccccc2/C1=C/NCCO'
+  'CC(C)C(=O)NC(=N)N'
 
 Other fragmentation approaches
 ==============================
@@ -2258,7 +2614,7 @@ object:
   >>> fparams.GetFuncGroup(1)
   <rdkit.Chem.rdchem.Mol object at 0x...>
   >>> Chem.MolToSmarts(fparams.GetFuncGroup(1))
-  '*-C(=O)-,:[O&D1]'
+  '*-C(=O)[O&D1]'
   >>> Chem.MolToSmarts(fparams.GetFuncGroup(34))
   '*-[O&D1]'
   >>> fparams.GetFuncGroup(1).GetProp('_Name')
@@ -2346,7 +2702,7 @@ another:
 
 .. doctest::
 
-  >>> combinedFp=fp&(fp^fp2) # can be more efficent than fp&(!fp2)
+  >>> combinedFp=fp&(fp^fp2) # can be more efficient than fp&(!fp2)
   >>> obl = list(combinedFp.GetOnBits())
   >>> fcat.GetEntryDescription(obl[-1])
   'cccc(N)cc'
@@ -2362,7 +2718,7 @@ that distinguish actives from inactives:
   >>> fps = [fpgen.GetFPForMol(x,fcat) for x in sdms]
   >>> from rdkit.ML.InfoTheory import InfoBitRanker
   >>> ranker = InfoBitRanker(len(fps[0]),2)
-  >>> acts = [float(x.GetProp('ACTIVITY')) for x in sdms]
+  >>> acts = [x.GetDoubleProp('ACTIVITY') for x in sdms]
   >>> for i,fp in enumerate(fps):
   ...   act = int(acts[i]>7)
   ...   ranker.AccumulateVotes(fp,act)
@@ -2381,6 +2737,66 @@ The columns above are: bitId, infoGain, nInactive, nActive. Note that
 this approach isn't particularly effective for this artificial
 example.
 
+
+R-Group Decomposition
+*********************
+
+Let's look at how it works. We'll read in a group of molecules (these were taken ChEMBL), define a core
+with labelled R groups, and then use the simplest call to do R-group decomposition: 
+:py:func:`rdkit.Chem.rdRGroupDecomposition.RGroupDecompose`
+
+.. doctest::
+
+  >>> from rdkit import Chem
+  >>> from rdkit.Chem import rdRGroupDecomposition as rdRGD
+  >>> suppl = Chem.SmilesMolSupplier('data/s1p_chembldoc89753.txt',delimiter=",",smilesColumn=9,nameColumn=10)
+  >>> ms = [x for x in suppl if x is not None]
+  >>> len(ms)
+  40
+  >>> core = Chem.MolFromSmarts('[*:1]c1nc([*:2])on1')
+  >>> res,unmatched = rdRGD.RGroupDecompose([core],ms,asSmiles=True)
+  >>> unmatched
+  []
+  >>> len(res)
+  40
+  >>> res[:2]            # doctest: +NORMALIZE_WHITESPACE
+  [{'Core': 'n1oc([*:2])nc1[*:1]', 'R1': 'O=C(O)CCCC1NCCOc2c1cccc2[*:1]', 'R2': 'CC(C)Oc1ccc([*:2])cc1Cl'}, 
+   {'Core': 'n1oc([*:2])nc1[*:1]', 'R1': 'O=C(O)CCC1NCCOc2c1cccc2[*:1]', 'R2': 'CC(C)Oc1ccc([*:2])cc1Cl'}]
+
+The `unmatched` return value has the indices of the molecules that did not match
+a core; in this case there are none. The other result is a list with one dict
+for each molecule; each dict contains the core that matched the molecule (in
+this case there was only one) and the molecule's R groups.
+
+As an aside, if you are a Pandas user, it's very easy to get the R-group
+decomposition results into a DataFrame:
+
+.. doctest::
+
+  >>> import pandas as pd
+  >>> res,unmatched = rdRGD.RGroupDecompose([core],ms,asSmiles=True,asRows=False)
+  >>> df= pd.DataFrame(res)
+  >>> df.head()
+                    Core                              R1                       R2
+  0  n1oc([*:2])nc1[*:1]   O=C(O)CCCC1NCCOc2c1cccc2[*:1]  CC(C)Oc1ccc([*:2])cc1Cl
+  1  n1oc([*:2])nc1[*:1]    O=C(O)CCC1NCCOc2c1cccc2[*:1]  CC(C)Oc1ccc([*:2])cc1Cl
+  2  n1oc([*:2])nc1[*:1]  O=C(O)CCC1COc2ccc([*:1])cc2CN1  CC(C)Oc1ccc([*:2])cc1Cl
+  3  n1oc([*:2])nc1[*:1]   O=C(O)CCCC1NCCOc2c1cccc2[*:1]  CC(C)Oc1ncc([*:2])cc1Cl
+  4  n1oc([*:2])nc1[*:1]   O=C(O)CCCC1NCCOc2c1cccc2[*:1]  CC(C)Oc1ncc([*:2])cc1Cl
+
+It's not necessary to label the attachment points on the core, if you leave them
+out the code will automatically assign labels:
+
+.. doctest::
+
+  >>> core2 = Chem.MolFromSmarts('c1ncon1')
+  >>> res,unmatched = rdRGD.RGroupDecompose([core2],ms,asSmiles=True)
+  >>> res[:2]            # doctest: +NORMALIZE_WHITESPACE
+  [{'Core': 'n1oc([*:1])nc1[*:2]', 'R1': 'CC(C)Oc1ccc([*:1])cc1Cl', 'R2': 'O=C(O)CCCC1NCCOc2c1cccc2[*:2]'}, 
+   {'Core': 'n1oc([*:1])nc1[*:2]', 'R1': 'CC(C)Oc1ccc([*:1])cc1Cl', 'R2': 'O=C(O)CCC1NCCOc2c1cccc2[*:2]'}]
+
+R-group decomposition is actually pretty complex, so there's a lot more there.
+Hopefully this is enough to get you started. 
 
 Non-Chemical Functionality
 **************************
@@ -2423,7 +2839,7 @@ These are accessible using Python's help command:
   >>> m = Chem.MolFromSmiles('Cc1ccccc1')
   >>> m.GetNumAtoms()
   7
-  >>> help(m.GetNumAtoms)
+  >>> help(m.GetNumAtoms) 
   Help on method GetNumAtoms:
   <BLANKLINE>
   GetNumAtoms(...) method of rdkit.Chem.rdchem.Mol instance
@@ -2437,7 +2853,7 @@ These are accessible using Python's help command:
   <BLANKLINE>
   <BLANKLINE>
           C++ signature :
-              int GetNumAtoms(RDKit::ROMol [,int=-1 [,bool=True]])
+              int GetNumAtoms(...)
   <BLANKLINE>
   >>> m.GetNumAtoms(onlyExplicit=False)
   15
@@ -2481,11 +2897,11 @@ but that are, of course, complete nonsense, as sanitization will indicate:
 
   >>> Chem.SanitizeMol(m)
   Traceback (most recent call last):
-    File "/usr/lib/python2.6/doctest.py", line 1253, in __run
+    File "/usr/lib/python3.6/doctest.py", line 1253, in __run
       compileflags, 1) in test.globs
     File "<doctest default[0]>", line 1, in <module>
       Chem.SanitizeMol(m)
-  ValueError: Sanitization error: Can't kekulize mol
+  rdkit.Chem.rdchem.KekulizeException: Can't kekulize mol.  Unkekulized atoms: 1 2 3 4 5
   <BLANKLINE>
 
 More complex transformations can be carried out using the
@@ -2665,6 +3081,8 @@ List of Available Descriptors
 |TPSA                                                 |*J. Med. Chem.*                                             | C++      |
 |                                                     |**43**:3714\-7,                                             |          |
 |                                                     |(2000)                                                      |          |
+|                                                     |See the section in the RDKit book describing differences    |          |
+|                                                     |to the original publication.                                |          |
 +-----------------------------------------------------+------------------------------------------------------------+----------+
 |LabuteASA                                            |*J. Mol. Graph. Mod.*                                       | C++      |
 |                                                     |**18**:464\-77 (2000)                                       |          |
@@ -2700,7 +3118,7 @@ List of Available Descriptors
 +-----------------------------------------------------+------------------------------------------------------------+----------+
 |Autocorr2D                                           |New in 2017.09 release. Todeschini and Consoni "Descriptors | C++      |
 |                                                     |from Molecular Geometry" Handbook of Chemoinformatics       |          |
-|                                                     |http://dx.doi.org/10.1002/9783527618279.ch37                |          |
+|                                                     |https://doi.org/10.1002/9783527618279.ch37                  |          |
 +-----------------------------------------------------+------------------------------------------------------------+----------+
 
 
@@ -2723,40 +3141,40 @@ These all require the molecule to have a 3D conformer.
 +-----------------------------------------------------+-------------------------------------------------------------+----------+
 |Radius of gyration                                   |G. A. Arteca "Molecular Shape Descriptors"                   | C++      |
 |                                                     |Reviews in Computational Chemistry vol 9                     |          |
-|                                                     |http://dx.doi.org/10.1002/9780470125861.ch5                  |          |
+|                                                     |https://doi.org/10.1002/9780470125861.ch5                    |          |
 +-----------------------------------------------------+-------------------------------------------------------------+----------+
 |Inertial shape factor                                |Todeschini and Consoni "Descriptors from Molecular Geometry" | C++      |
 |                                                     |Handbook of Chemoinformatics                                 |          |
-|                                                     |http://dx.doi.org/10.1002/9783527618279.ch37                 |          |
+|                                                     |https://doi.org/10.1002/9783527618279.ch37                   |          |
 +-----------------------------------------------------+-------------------------------------------------------------+----------+
 |Eccentricity                                         |G. A. Arteca "Molecular Shape Descriptors"                   | C++      |
 |                                                     |Reviews in Computational Chemistry vol 9                     |          |
-|                                                     |http://dx.doi.org/10.1002/9780470125861.ch5                  |          |
+|                                                     |https://doi.org/10.1002/9780470125861.ch5                    |          |
 +-----------------------------------------------------+-------------------------------------------------------------+----------+
 |Asphericity                                          |A. Baumgaertner, "Shapes of flexible vesicles"               | C++      |
 |                                                     |J. Chem. Phys. 98:7496                                       |          |
 |                                                     |(1993)                                                       |          |
-|                                                     |http://dx.doi.org/10.1063/1.464689                           |          |
+|                                                     |https://doi.org/10.1063/1.464689                             |          |
 +-----------------------------------------------------+-------------------------------------------------------------+----------+
 |Spherocity Index                                     |Todeschini and Consoni "Descriptors from Molecular Geometry" | C++      |
 |                                                     |Handbook of Chemoinformatics                                 |          |
-|                                                     |http://dx.doi.org/10.1002/9783527618279.ch37                 |          |
+|                                                     |https://doi.org/10.1002/9783527618279.ch37                   |          |
 +-----------------------------------------------------+-------------------------------------------------------------+----------+
 |Autocorr3D                                           |New in 2017.09 release. Todeschini and Consoni "Descriptors  | C++      |
 |                                                     |from Molecular Geometry" Handbook of Chemoinformatics        |          |
-|                                                     |http://dx.doi.org/10.1002/9783527618279.ch37                 |          |
+|                                                     |https://doi.org/10.1002/9783527618279.ch37                   |          |
 +-----------------------------------------------------+-------------------------------------------------------------+----------+
 |RDF                                                  |New in 2017.09 release. Todeschini and Consoni "Descriptors  | C++      |
 |                                                     |from Molecular Geometry" Handbook of Chemoinformatics        |          |
-|                                                     |http://dx.doi.org/10.1002/9783527618279.ch37                 |          |
+|                                                     |https://doi.org/10.1002/9783527618279.ch37                   |          |
 +-----------------------------------------------------+-------------------------------------------------------------+----------+
 |MORSE                                                |New in 2017.09 release. Todeschini and Consoni "Descriptors  | C++      |
 |                                                     |from Molecular Geometry" Handbook of Chemoinformatics        |          |
-|                                                     |http://dx.doi.org/10.1002/9783527618279.ch37                 |          |
+|                                                     |https://doi.org/10.1002/9783527618279.ch37                   |          |
 +-----------------------------------------------------+-------------------------------------------------------------+----------+
 |WHIM                                                 |New in 2017.09 release. Todeschini and Consoni "Descriptors  | C++      |
 |                                                     |from Molecular Geometry" Handbook of Chemoinformatics        |          |
-|                                                     |http://dx.doi.org/10.1002/9783527618279.ch37                 |          |
+|                                                     |https://doi.org/10.1002/9783527618279.ch37                   |          |
 |                                                     |                                                             |          |
 |                                                     |**Note** insufficient information is available to exactly    |          |
 |                                                     |reproduce values from DRAGON for these descriptors. We       |          |
@@ -2764,7 +3182,7 @@ These all require the molecule to have a 3D conformer.
 +-----------------------------------------------------+-------------------------------------------------------------+----------+
 |GETAWAY                                              |New in 2017.09 release. Todeschini and Consoni "Descriptors  | C++      |
 |                                                     |from Molecular Geometry" Handbook of Chemoinformatics        |          |
-|                                                     |http://dx.doi.org/10.1002/9783527618279.ch37                 |          |
+|                                                     |https://doi.org/10.1002/9783527618279.ch37                   |          |
 |                                                     |                                                             |          |
 |                                                     |**Note** insufficient information is available to exactly    |          |
 |                                                     |reproduce values from DRAGON for these descriptors. We       |          |

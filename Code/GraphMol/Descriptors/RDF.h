@@ -33,7 +33,7 @@
 //
 // Created by Guillaume Godin 2016
 
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef RDFRDKIT_H_SEPT2016
 #define RDFRDKIT_H_SEPT2016
 
@@ -42,8 +42,9 @@ namespace RDKit {
 class ROMol;
 namespace Descriptors {
 const std::string RDFVersion = "1.0.0";
-RDKIT_DESCRIPTORS_EXPORT void RDF(const ROMol &, std::vector<double> &res, int confId = -1,
-         const std::string &customAtomPropName = "");
+RDKIT_DESCRIPTORS_EXPORT void RDF(const ROMol &, std::vector<double> &res,
+                                  int confId = -1,
+                                  const std::string &customAtomPropName = "");
 
 }  // namespace Descriptors
 }  // namespace RDKit

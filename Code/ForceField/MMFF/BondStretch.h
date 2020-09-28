@@ -9,7 +9,7 @@
 //  which is included in the file license.txt, found at the root
 //  of the RDKit source tree.
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef __RD_MMFFBONDSTRETCH_H__
 #define __RD_MMFFBONDSTRETCH_H__
 #include <ForceField/Contrib.h>
@@ -22,7 +22,7 @@ class MMFFBondStretchEmpiricalRule;
 //! The bond-stretch term for MMFF
 class RDKIT_FORCEFIELD_EXPORT BondStretchContrib : public ForceFieldContrib {
  public:
-  BondStretchContrib() : d_at1Idx(-1), d_at2Idx(-1){};
+  BondStretchContrib()  {};
   //! Constructor
   /*!
     \param owner       pointer to the owning ForceField
@@ -45,20 +45,23 @@ class RDKIT_FORCEFIELD_EXPORT BondStretchContrib : public ForceFieldContrib {
   };
 
  private:
-  int d_at1Idx, d_at2Idx;  //!< indices of end points
+  int d_at1Idx{-1}, d_at2Idx{-1};  //!< indices of end points
   double d_r0;             //!< rest length of the bond
   double d_kb;             //!< force constant of the bond
 };
 
 namespace Utils {
 //! returns the MMFF rest length for a bond
-RDKIT_FORCEFIELD_EXPORT double calcBondRestLength(const MMFFBond *mmffBondParams);
+RDKIT_FORCEFIELD_EXPORT double calcBondRestLength(
+    const MMFFBond *mmffBondParams);
 //! returns the MMFF force constant for a bond
-RDKIT_FORCEFIELD_EXPORT double calcBondForceConstant(const MMFFBond *mmffBondParams);
+RDKIT_FORCEFIELD_EXPORT double calcBondForceConstant(
+    const MMFFBond *mmffBondParams);
 //! calculates and returns the bond stretching MMFF energy
-RDKIT_FORCEFIELD_EXPORT double calcBondStretchEnergy(const double r0, const double kb,
-                             const double distance);
-}
-}
-}
+RDKIT_FORCEFIELD_EXPORT double calcBondStretchEnergy(const double r0,
+                                                     const double kb,
+                                                     const double distance);
+}  // namespace Utils
+}  // namespace MMFF
+}  // namespace ForceFields
 #endif

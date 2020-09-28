@@ -7,7 +7,7 @@
 //  which is included in the file license.txt, found at the root
 //  of the RDKit source tree.
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef _GRID3D_H_20050124_1113
 #define _GRID3D_H_20050124_1113
 #include <exception>
@@ -26,8 +26,8 @@ class RDKIT_RDGEOMETRYLIB_EXPORT GridException : public std::exception {
   //! construct with an error message
   GridException(const std::string &msg) : _msg(msg){};
   //! get the error message
-  const char *message() const { return _msg.c_str(); };
-  ~GridException() throw(){};
+  const char *what() const noexcept override { return _msg.c_str(); };
+  ~GridException() noexcept {};
 
  private:
   std::string _msg;
@@ -49,6 +49,6 @@ class RDKIT_RDGEOMETRYLIB_EXPORT Grid3D {
 
   virtual const RDKit::DiscreteValueVect *getOccupancyVect() const = 0;
 };
-}
+}  // namespace RDGeom
 
 #endif

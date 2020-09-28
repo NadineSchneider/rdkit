@@ -29,7 +29,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef RD_REACTIONFINGERPRINTS_H
 #define RD_REACTIONFINGERPRINTS_H
 
@@ -74,12 +74,8 @@ enum FingerprintType {
  */
 struct RDKIT_CHEMREACTIONS_EXPORT ReactionFingerprintParams {
   ReactionFingerprintParams()
-      : includeAgents(false),
-        bitRatioAgents(0.2),
-        nonAgentWeight(10),
-        agentWeight(1),
-        fpSize(2048),
-        fpType(AtomPairFP) {}
+      
+        {}
 
   ReactionFingerprintParams(bool includeAgents, double bitRatioAgents,
                             unsigned int nonAgentWeight, int agentWeight,
@@ -91,16 +87,18 @@ struct RDKIT_CHEMREACTIONS_EXPORT ReactionFingerprintParams {
         fpSize(fpSize),
         fpType(fpType) {}
 
-  bool includeAgents;
-  double bitRatioAgents;
-  unsigned int nonAgentWeight;
-  int agentWeight;
-  unsigned int fpSize;
-  FingerprintType fpType;
+  bool includeAgents{false};
+  double bitRatioAgents{0.2};
+  unsigned int nonAgentWeight{10};
+  int agentWeight{1};
+  unsigned int fpSize{2048};
+  FingerprintType fpType{AtomPairFP};
 };
 
-RDKIT_CHEMREACTIONS_EXPORT extern const ReactionFingerprintParams DefaultStructuralFPParams;
-RDKIT_CHEMREACTIONS_EXPORT extern const ReactionFingerprintParams DefaultDifferenceFPParams;
+RDKIT_CHEMREACTIONS_EXPORT extern const ReactionFingerprintParams
+    DefaultStructuralFPParams;
+RDKIT_CHEMREACTIONS_EXPORT extern const ReactionFingerprintParams
+    DefaultDifferenceFPParams;
 
 //! Generates a structural fingerprint for a reaction
 //! to use in screening
@@ -142,9 +140,10 @@ RDKIT_CHEMREACTIONS_EXPORT ExplicitBitVect *StructuralFingerprintChemReaction(
   <b>Notes:</b>
     - the caller is responsible for <tt>delete</tt>ing the result
 */
-RDKIT_CHEMREACTIONS_EXPORT SparseIntVect<boost::uint32_t> *DifferenceFingerprintChemReaction(
-    const ChemicalReaction &rxn,
-    const ReactionFingerprintParams &params = DefaultDifferenceFPParams);
-}
+RDKIT_CHEMREACTIONS_EXPORT SparseIntVect<std::uint32_t>
+    *DifferenceFingerprintChemReaction(
+        const ChemicalReaction &rxn,
+        const ReactionFingerprintParams &params = DefaultDifferenceFPParams);
+}  // namespace RDKit
 
 #endif

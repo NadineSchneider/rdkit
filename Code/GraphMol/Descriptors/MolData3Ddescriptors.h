@@ -30,7 +30,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef MOLDATA3DDESCRIPTORS_2017
 #define MOLDATA3DDESCRIPTORS_2017
 
@@ -45,7 +45,8 @@ class RDKIT_DESCRIPTORS_EXPORT MolData3Ddescriptors {
   MolData3Ddescriptors();
   std::vector<double> GetCharges(const RDKit::ROMol& mol);
   std::vector<double> GetRelativeMW(const RDKit::ROMol& mol);
-  std::vector<double> GetCustomAtomProp(const RDKit::ROMol& mol, const std::string &customAtomPropName);
+  std::vector<double> GetCustomAtomProp(const RDKit::ROMol& mol,
+                                        const std::string& customAtomPropName);
   std::vector<double> GetRelativePol(const RDKit::ROMol& mol);
   std::vector<double> GetRelativeRcov(const RDKit::ROMol& mol);
   std::vector<double> GetRelativeENeg(const RDKit::ROMol& mol);

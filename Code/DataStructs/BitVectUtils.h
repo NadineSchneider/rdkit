@@ -7,7 +7,7 @@
 //  which is included in the file license.txt, found at the root
 //  of the RDKit source tree.
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef __RD_BITVECTS_UTILS_H__
 #define __RD_BITVECTS_UTILS_H__
 
@@ -30,5 +30,6 @@ RDKIT_DATASTRUCTS_EXPORT void FromBitString(T &sbv, const std::string &s);
   <b>Note:</b> the caller is responsible for <tt>delete</tt>ing this.
 
  */
-RDKIT_DATASTRUCTS_EXPORT ExplicitBitVect *convertToExplicit(const SparseBitVect *sbv);
+RDKIT_DATASTRUCTS_EXPORT ExplicitBitVect *convertToExplicit(
+    const SparseBitVect *sbv);
 #endif

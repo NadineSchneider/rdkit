@@ -10,7 +10,7 @@
 // This is a concrete class derived from MolDraw2D that uses RDKit to draw a
 // molecule into a QPainter.
 
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef MOLDRAW2DQT_H
 #define MOLDRAW2DQT_H
 
@@ -47,5 +47,5 @@ class RDKIT_MOLDRAW2D_EXPORT MolDraw2DQt : public MolDraw2D {
  private:
   QPainter &qp_;
 };
-}
+}  // namespace RDKit
 #endif  // MOLDRAW2DQT_H

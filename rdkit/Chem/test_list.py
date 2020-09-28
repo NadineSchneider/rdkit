@@ -20,10 +20,10 @@ tests = [
   ("python", "UnitTestFunctionalGroups.py", {}),
   ("python", "UnitTestCrippen.py", {}),
   ("python", "UnitTestPandasTools.py", {}),
-  ("python", "UnitTestPeriodicTable.py", {}),
   ("python", "UnitTestDocTestsChem.py", {}),
   ("python", "UnitTestFeatFinderCLI.py", {}),
   ("python", "UnitTestQED.py", {}),
+  ("python", "UnitTestSaltRemover.py", {}),
   ("python", "test_list.py", {'dir': 'AtomPairs'}),
   ("python", "test_list.py", {'dir': 'ChemUtils'}),
   ("python", "test_list.py", {'dir': 'EState'}),
@@ -38,6 +38,7 @@ tests = [
   ("python", "test_list.py", {'dir': 'Fraggle'}),
   ("python", "test_list.py", {'dir': 'SimpleEnum'}),
   ("python", "test_list.py", {'dir': 'Features'}),
+  ("python", "test_list.py", {'dir': 'MolStandardize'})
 ]
 
 # only attempt the MolKey tests if we have the pre-reqs:

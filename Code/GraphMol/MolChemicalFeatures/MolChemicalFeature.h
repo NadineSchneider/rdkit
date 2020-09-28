@@ -7,7 +7,7 @@
 //  which is included in the file license.txt, found at the root
 //  of the RDKit source tree.
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef __MOLCHEMICALFEATURE_H_11012005_1404__
 #define __MOLCHEMICALFEATURE_H_11012005_1404__
 
@@ -23,7 +23,8 @@ class Atom;
 class MolChemicalFeatureFactory;
 class MolChemicalFeatureDef;
 
-class RDKIT_MOLCHEMICALFEATURES_EXPORT MolChemicalFeature : public ChemicalFeatures::ChemicalFeature {
+class RDKIT_MOLCHEMICALFEATURES_EXPORT MolChemicalFeature
+    : public ChemicalFeatures::ChemicalFeature {
   friend class MolChemicalFeatureFactory;
 
  public:
@@ -92,6 +93,6 @@ class RDKIT_MOLCHEMICALFEATURES_EXPORT MolChemicalFeature : public ChemicalFeatu
   AtomPtrContainer d_atoms;
   mutable PointCacheType d_locs;
 };
-}
+}  // namespace RDKit
 
 #endif

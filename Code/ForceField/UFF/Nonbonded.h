@@ -7,7 +7,7 @@
 //  which is included in the file license.txt, found at the root
 //  of the RDKit source tree.
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef __RD_NONBONDED_H__
 #define __RD_NONBONDED_H__
 #include <ForceField/Contrib.h>
@@ -30,7 +30,7 @@ class AtomicParams;
  */
 class RDKIT_FORCEFIELD_EXPORT vdWContrib : public ForceFieldContrib {
  public:
-  vdWContrib() : d_at1Idx(-1), d_at2Idx(-1){};
+  vdWContrib(){};
 
   //! Constructor
   /*!
@@ -51,7 +51,8 @@ class RDKIT_FORCEFIELD_EXPORT vdWContrib : public ForceFieldContrib {
   virtual vdWContrib *copy() const { return new vdWContrib(*this); };
 
  private:
-  int d_at1Idx, d_at2Idx;
+  int d_at1Idx{-1};
+  int d_at2Idx{-1};
   double d_xij;        //!< the preferred length of the contact
   double d_wellDepth;  //!< the vdW well depth (strength of the interaction)
   double d_thresh;     //!< the distance threshold
@@ -66,8 +67,8 @@ namespace Utils {
   \return the position of the minimum
 
 */
-RDKIT_FORCEFIELD_EXPORT double calcNonbondedMinimum(const AtomicParams *at1Params,
-                            const AtomicParams *at2Params);
+RDKIT_FORCEFIELD_EXPORT double calcNonbondedMinimum(
+    const AtomicParams *at1Params, const AtomicParams *at2Params);
 
 //! calculates and returns the UFF well depth for a vdW contact
 /*!
@@ -78,9 +79,9 @@ RDKIT_FORCEFIELD_EXPORT double calcNonbondedMinimum(const AtomicParams *at1Param
   \return the depth of the well
 
 */
-RDKIT_FORCEFIELD_EXPORT double calcNonbondedDepth(const AtomicParams *at1Params,
-                          const AtomicParams *at2Params);
-}
-}
-}
+RDKIT_FORCEFIELD_EXPORT double calcNonbondedDepth(
+    const AtomicParams *at1Params, const AtomicParams *at2Params);
+}  // namespace Utils
+}  // namespace UFF
+}  // namespace ForceFields
 #endif

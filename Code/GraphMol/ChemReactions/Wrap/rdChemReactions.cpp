@@ -55,13 +55,13 @@ namespace python = boost::python;
 void rdChemicalReactionParserExceptionTranslator(
     RDKit::ChemicalReactionParserException const &x) {
   std::ostringstream ss;
-  ss << "ChemicalReactionParserException: " << x.message();
+  ss << "ChemicalReactionParserException: " << x.what();
   PyErr_SetString(PyExc_ValueError, ss.str().c_str());
 }
 void rdChemicalReactionExceptionTranslator(
     RDKit::ChemicalReactionException const &x) {
   std::ostringstream ss;
-  ss << "ChemicalParserException: " << x.message();
+  ss << "ChemicalParserException: " << x.what();
   PyErr_SetString(PyExc_ValueError, ss.str().c_str());
 }
 
@@ -88,7 +88,8 @@ struct reaction_pickle_suite : python::pickle_suite {
 };
 
 template <typename T>
-PyObject *RunReactants(ChemicalReaction *self, T reactants) {
+PyObject *RunReactants(ChemicalReaction *self, T reactants,
+                       unsigned int maxProducts) {
   if (!self->isInitialized()) {
     NOGIL gil;
     self->initReactantMatchers();
@@ -99,12 +100,14 @@ PyObject *RunReactants(ChemicalReaction *self, T reactants) {
   reacts.resize(len1);
   for (unsigned int i = 0; i < len1; ++i) {
     reacts[i] = python::extract<ROMOL_SPTR>(reactants[i]);
-    if (!reacts[i]) throw_value_error("reaction called with None reactants");
+    if (!reacts[i]) {
+      throw_value_error("reaction called with None reactants");
+    }
   }
   std::vector<MOL_SPTR_VECT> mols;
   {
     NOGIL gil;
-    mols = self->runReactants(reacts);
+    mols = self->runReactants(reacts, maxProducts);
   }
   PyObject *res = PyTuple_New(mols.size());
 
@@ -159,7 +162,7 @@ ROMol *GetProductTemplate(const ChemicalReaction *self, unsigned int which) {
   }
   auto iter = self->beginProductTemplates();
   iter += which;
-  ROMol *res = const_cast<ROMol *>(iter->get());
+  auto *res = const_cast<ROMol *>(iter->get());
   return res;
 }
 ROMol *GetReactantTemplate(const ChemicalReaction *self, unsigned int which) {
@@ -168,7 +171,7 @@ ROMol *GetReactantTemplate(const ChemicalReaction *self, unsigned int which) {
   }
   auto iter = self->beginReactantTemplates();
   iter += which;
-  ROMol *res = const_cast<ROMol *>(iter->get());
+  auto *res = const_cast<ROMol *>(iter->get());
   return res;
 }
 ROMol *GetAgentTemplate(const ChemicalReaction *self, unsigned int which) {
@@ -177,7 +180,7 @@ ROMol *GetAgentTemplate(const ChemicalReaction *self, unsigned int which) {
   }
   auto iter = self->beginAgentTemplates();
   iter += which;
-  ROMol *res = const_cast<ROMol *>(iter->get());
+  auto *res = const_cast<ROMol *>(iter->get());
   return res;
 }
 
@@ -387,11 +390,42 @@ RxnOps::SanitizeRxnFlags sanitizeReaction(
   try {
     RxnOps::sanitizeRxn(rxn, operationsThatFailed, sanitizeOps, params);
   } catch (...) {
-    if (!catchErrors) throw;
+    if (!catchErrors) {
+      throw;
+    }
   }
   return static_cast<RxnOps::SanitizeRxnFlags>(operationsThatFailed);
 }
+
+python::object addReactionToPNGStringHelper(const ChemicalReaction &rxn,
+                                            python::object png, bool includePkl,
+                                            bool includeSmiles,
+                                            bool includeSmarts,
+                                            bool includeRxn) {
+  std::string cstr = python::extract<std::string>(png);
+
+  auto res = addChemicalReactionToPNGString(
+      rxn, cstr, includePkl, includeSmiles, includeSmarts, includeRxn);
+
+  python::object retval = python::object(
+      python::handle<>(PyBytes_FromStringAndSize(res.c_str(), res.length())));
+  return retval;
 }
+python::object addReactionToPNGFileHelper(const ChemicalReaction &rxn,
+                                          python::object fname, bool includePkl,
+                                          bool includeSmiles,
+                                          bool includeSmarts, bool includeRxn) {
+  std::string cstr = python::extract<std::string>(fname);
+
+  auto res = addChemicalReactionToPNGFile(rxn, cstr, includePkl, includeSmiles,
+                                          includeSmarts, includeRxn);
+
+  python::object retval = python::object(
+      python::handle<>(PyBytes_FromStringAndSize(res.c_str(), res.length())));
+  return retval;
+}
+
+}  // namespace RDKit
 
 void wrap_enumeration();
 
@@ -432,29 +466,28 @@ BOOST_PYTHON_MODULE(rdChemReactions) {
                      &RDKit::ReactionFingerprintParams::includeAgents);
 
   std::string docString =
-      "A class for storing and applying chemical reactions.\n\
-\n\
-Sample Usage:\n\
->>> from rdkit import Chem\n\
->>> from rdkit.Chem import rdChemReactions\n\
->>> rxn = rdChemReactions.ReactionFromSmarts('[C:1](=[O:2])O.[N:3]>>[C:1](=[O:2])[N:3]')\n\
->>> reacts = (Chem.MolFromSmiles('C(=O)O'),Chem.MolFromSmiles('CNC'))\n\
->>> products = rxn.RunReactants(reacts)\n\
->>> len(products)\n\
-1\n\
->>> len(products[0])\n\
-1\n\
->>> Chem.MolToSmiles(products[0][0])\n\
-'CN(C)C=O'\n\
-\n\
-";
+      R"DOC(A class for storing and applying chemical reactions.
+
+Sample Usage:
+  >>> from rdkit import Chem
+  >>> from rdkit.Chem import rdChemReactions
+  >>> rxn = rdChemReactions.ReactionFromSmarts('[C:1](=[O:2])O.[N:3]>>[C:1](=[O:2])[N:3]')
+  >>> reacts = (Chem.MolFromSmiles('C(=O)O'),Chem.MolFromSmiles('CNC'))
+  >>> products = rxn.RunReactants(reacts)
+  >>> len(products)
+  1
+  >>> len(products[0])
+  1
+  >>> Chem.MolToSmiles(products[0][0])
+  'CN(C)C=O'
+)DOC";
 
   // logic from https://stackoverflow.com/a/13017303
   boost::python::type_info info =
       boost::python::type_id<RDKit::MOL_SPTR_VECT>();
   const boost::python::converter::registration *reg =
       boost::python::converter::registry::query(info);
-  if (reg == NULL || (*reg).m_to_python == NULL) {
+  if (reg == nullptr || (*reg).m_to_python == nullptr) {
     python::class_<RDKit::MOL_SPTR_VECT>("MOL_SPTR_VECT")
         .def(python::vector_indexing_suite<RDKit::MOL_SPTR_VECT, true>());
   }
@@ -498,20 +531,31 @@ Sample Usage:\n\
       .def("RemoveAgentTemplates", RDKit::RemoveAgentTemplates,
            (python::arg("self"), python::arg("targetList") = python::object()),
            "Removes agents from reaction. If targetList is provide the agents "
-           "will be transfered to that list.")
-      .def("RunReactants", (PyObject * (*)(RDKit::ChemicalReaction *,
-                                           python::tuple))RDKit::RunReactants,
+           "will be transferred to that list.")
+      .def("RunReactants",
+           (PyObject * (*)(RDKit::ChemicalReaction *, python::tuple,
+                           unsigned int maxProducts)) RDKit::RunReactants,
+           (python::arg("self"), python::arg("reactants"),
+            python::arg("maxProducts") = 1000),
            "apply the reaction to a sequence of reactant molecules and return "
-           "the products as a tuple of tuples")
-      .def("RunReactants", (PyObject * (*)(RDKit::ChemicalReaction *,
-                                           python::list))RDKit::RunReactants,
+           "the products as a tuple of tuples.  If maxProducts is not zero,"
+           " stop the reaction when maxProducts have been generated "
+           "[default=1000]")
+      .def("RunReactants",
+           (PyObject * (*)(RDKit::ChemicalReaction *, python::list,
+                           unsigned int maxProducts)) RDKit::RunReactants,
+           (python::arg("self"), python::arg("reactants"),
+            python::arg("maxProducts") = 1000),
            "apply the reaction to a sequence of reactant molecules and return "
-           "the products as a tuple of tuples")
+           "the products as a tuple of tuples.  If maxProducts is not zero,"
+           " stop the reaction when maxProducts have been generated "
+           "[default=1000]")
       .def("RunReactant",
-           (PyObject * (*)(RDKit::ChemicalReaction *, python::object,
-                           unsigned))RDKit::RunReactant,
+           (PyObject * (*)(RDKit::ChemicalReaction *, python::object, unsigned))
+               RDKit::RunReactant,
            "apply the reaction to a single reactant")
       .def("Initialize", &RDKit::ChemicalReaction::initReactantMatchers,
+           (python::arg("self"), python::arg("silent") = false),
            "initializes the reaction so that it can be used")
       .def("IsInitialized", &RDKit::ChemicalReaction::isInitialized,
            "checks if the reaction is ready for use")
@@ -723,26 +767,54 @@ Sample Usage:\n\
 see the documentation for rdkit.Chem.MolFromSmiles for an explanation\n\
 of the replacements argument.",
       python::return_value_policy<python::manage_new_object>());
-  python::def("ReactionFromRxnFile", RDKit::RxnFileToChemicalReaction,
-              "construct a ChemicalReaction from an MDL rxn file",
-              python::return_value_policy<python::manage_new_object>());
-  python::def("ReactionFromRxnBlock", RDKit::RxnBlockToChemicalReaction,
-              "construct a ChemicalReaction from an string in MDL rxn format",
-              python::return_value_policy<python::manage_new_object>());
-  python::def("ReactionFromMolecule", RDKit::RxnMolToChemicalReaction,
-              "construct a ChemicalReaction from an molecule if the RXN role "
-              "property of the molecule is set",
-              python::return_value_policy<python::manage_new_object>());
-
   python::def("ReactionToSmarts", RDKit::ChemicalReactionToRxnSmarts,
               (python::arg("reaction")),
               "construct a reaction SMARTS string for a ChemicalReaction");
   python::def("ReactionToSmiles", RDKit::ChemicalReactionToRxnSmiles,
               (python::arg("reaction"), python::arg("canonical") = true),
               "construct a reaction SMILES string for a ChemicalReaction");
+
+  python::def(
+      "ReactionFromRxnFile", RDKit::RxnFileToChemicalReaction,
+      (python::arg("filename"), python::arg("sanitize") = false,
+       python::arg("removeHs") = false, python::arg("strictParsing") = true),
+      "construct a ChemicalReaction from an MDL rxn file",
+      python::return_value_policy<python::manage_new_object>());
+  python::def(
+      "ReactionFromRxnBlock", RDKit::RxnBlockToChemicalReaction,
+      (python::arg("rxnblock"), python::arg("sanitize") = false,
+       python::arg("removeHs") = false, python::arg("strictParsing") = true),
+      "construct a ChemicalReaction from a string in MDL rxn format",
+      python::return_value_policy<python::manage_new_object>());
   python::def("ReactionToRxnBlock", RDKit::ChemicalReactionToRxnBlock,
               (python::arg("reaction"), python::arg("separateAgents") = false),
               "construct a string in MDL rxn format for a ChemicalReaction");
+
+  python::def("ReactionFromPNGFile", RDKit::PNGFileToChemicalReaction,
+              "construct a ChemicalReaction from metadata in a PNG file",
+              python::return_value_policy<python::manage_new_object>());
+  python::def("ReactionFromPNGString", RDKit::PNGStringToChemicalReaction,
+              "construct a ChemicalReaction from an string with PNG data",
+              python::return_value_policy<python::manage_new_object>());
+  python::def(
+      "ReactionMetadataToPNGFile", RDKit::addReactionToPNGFileHelper,
+      (python::arg("mol"), python::arg("filename"),
+       python::arg("includePkl") = true, python::arg("includeSmiles") = true,
+       python::arg("includeSmarts") = false, python::arg("includeMol") = false),
+      "Reads the contents of a PNG file and adds metadata about a reaction to "
+      "it. The modified file contents are returned.");
+  python::def(
+      "ReactionMetadataToPNGString", RDKit::addReactionToPNGStringHelper,
+      (python::arg("mol"), python::arg("pngdata"),
+       python::arg("includePkl") = true, python::arg("includeSmiles") = true,
+       python::arg("includeSmarts") = false, python::arg("includeRxn") = false),
+      "Adds metadata about a reaction to the PNG string passed in."
+      "The modified string is returned.");
+
+  python::def("ReactionFromMolecule", RDKit::RxnMolToChemicalReaction,
+              "construct a ChemicalReaction from an molecule if the RXN role "
+              "property of the molecule is set",
+              python::return_value_policy<python::manage_new_object>());
   python::def(
       "ReactionToMolecule", RDKit::ChemicalReactionToRxnMol,
       (python::arg("reaction")),
@@ -750,22 +822,23 @@ of the replacements argument.",
       python::return_value_policy<python::manage_new_object>());
 
   docString =
-      "Compute 2D coordinates for a reaction. \n\
-  ARGUMENTS: \n\n\
-     reaction - the reaction of interest\n\
-     spacing - the amount of space left between components of the reaction\n\
-     canonOrient - orient the reactants and products in a canonical way\n\
-     updateProps - if set, properties such as conjugation and\n\
-        hybridization will be calculated for the reactant and product\n\
-        templates before generating coordinates. This should result in\n\
-        better depictions, but can lead to errors in some cases.\n\
-     nFlipsPerSample - number of rotatable bonds that are\n\
-                flipped at random at a time.\n\
-     nSample - Number of random samplings of rotatable bonds.\n\
-     sampleSeed - seed for the random sampling process.\n\
-     permuteDeg4Nodes - allow permutation of bonds at a degree 4\n\
-                 node during the sampling process \n\
-     bondLength - change the default bond length for depiction \n\n";
+      R"DOC(Compute 2D coordinates for a reaction. 
+  ARGUMENTS: 
+     - reaction - the reaction of interest
+     - spacing - the amount of space left between components of the reaction
+     - canonOrient - orient the reactants and products in a canonical way
+     - updateProps - if set, properties such as conjugation and
+        hybridization will be calculated for the reactant and product
+        templates before generating coordinates. This should result in
+        better depictions, but can lead to errors in some cases.
+     - nFlipsPerSample - number of rotatable bonds that are
+                flipped at random at a time.
+     - nSample - Number of random samplings of rotatable bonds.
+     - sampleSeed - seed for the random sampling process.
+     - permuteDeg4Nodes - allow permutation of bonds at a degree 4
+                 node during the sampling process 
+     - bondLength - change the default bond length for depiction
+)DOC";
   python::def(
       "Compute2DCoordsForReaction", RDKit::Compute2DCoordsForReaction,
       (python::arg("reaction"), python::arg("spacing") = 2.0,
@@ -842,103 +915,103 @@ of the replacements argument.",
               "Removes the mapping numbers from the molecules of a reaction");
 
   docString =
-      "A function for preprocessing reactions with more specific queries.\n\
-Queries are indicated by labels on atoms (molFileAlias property by default)\n\
-When these labels are found, more specific queries are placed on the atoms.\n\
-By default, the available quieries come from \n\
-  FilterCatalog.GetFlattenedFunctionalGroupHierarchy(True)\n\n\n\
-Sample Usage:\n\
-  >>> from rdkit import Chem, RDConfig\n\
-  >>> from rdkit.Chem import MolFromSmiles, AllChem\n\
-  >>> from rdkit.Chem.rdChemReactions import PreprocessReaction\n\
-  >>> import os\n\
-  >>> testFile = os.path.join(RDConfig.RDCodeDir,'Chem','SimpleEnum','test_data','boronic1.rxn')\n\
-  >>> rxn = AllChem.ReactionFromRxnFile(testFile)\n\
-  >>> rxn.Initialize()\n\
-  >>> nWarn,nError,nReacts,nProds,reactantLabels = PreprocessReaction(rxn)\n\
-  >>> nWarn\n\
-  0\n\
-  >>> nError\n\
-  0\n\
-  >>> nReacts\n\
-  2\n\
-  >>> nProds\n\
-  1\n\
-  >>> reactantLabels\n\
-  (((0, 'halogen.bromine.aromatic'),), ((1, 'boronicacid'),))\n\
-\n\
-  If there are functional group labels in the input reaction (via atoms with molFileValue properties),\n\
-  the corresponding atoms will have queries added to them so that they only match such things. We can\n\
-  see this here:\n\
-  >>> rxn = AllChem.ReactionFromRxnFile(testFile)\n\
-  >>> rxn.Initialize()\n\
-  >>> r1 = rxn.GetReactantTemplate(0)\n\
-  >>> m1 = Chem.MolFromSmiles('CCBr')\n\
-  >>> m2 = Chem.MolFromSmiles('c1ccccc1Br')\n\
-  \n\
-  These both match because the reaction file itself just has R1-Br:\n\
-  >>> m1.HasSubstructMatch(r1)\n\
-  True\n\
-  >>> m2.HasSubstructMatch(r1)\n\
-  True\n\
-\n\
-  After preprocessing, we only match the aromatic Br:\n\
-  >>> d = PreprocessReaction(rxn)\n\
-  >>> m1.HasSubstructMatch(r1)\n\
-  False\n\
-  >>> m2.HasSubstructMatch(r1)\n\
-  True\n\
-\n\
-  We also support or queries in the values field (separated by commas):\n\
-  >>> testFile = os.path.join(RDConfig.RDCodeDir,'Chem','SimpleEnum','test_data','azide_reaction.rxn')\n\
-  >>> rxn = AllChem.ReactionFromRxnFile(testFile)\n\
-  >>> rxn.Initialize()\n\
-  >>> reactantLabels = PreprocessReaction(rxn)[-1]\n\
-  >>> reactantLabels\n\
-  (((1, 'azide'),), ((1, 'carboxylicacid,acidchloride'),))\n\
-  >>> m1 = Chem.MolFromSmiles('CC(=O)O')\n\
-  >>> m2 = Chem.MolFromSmiles('CC(=O)Cl')\n\
-  >>> m3 = Chem.MolFromSmiles('CC(=O)N')\n\
-  >>> r2 = rxn.GetReactantTemplate(1)\n\
-  >>> m1.HasSubstructMatch(r2)\n\
-  True\n\
-  >>> m2.HasSubstructMatch(r2)\n\
-  True\n\
-  >>> m3.HasSubstructMatch(r2)\n\
-  False\n\
-\n\
-  unrecognized final group types are returned as None:\n\
-  >>> testFile = os.path.join(RDConfig.RDCodeDir,'Chem','SimpleEnum','test_data','bad_value1.rxn')\n\
-  >>> rxn = AllChem.ReactionFromRxnFile(testFile)\n\
-  >>> rxn.Initialize()\n\
-  >>> nWarn,nError,nReacts,nProds,reactantLabels = PreprocessReaction(rxn)\n\
-  Traceback (most recent call last):\n\
-    ...\n\
-  RuntimeError: KeyErrorException\n\
-\n\
-  One unrecognized group type in a comma-separated list makes the whole thing fail:\n\
-  >>> testFile = os.path.join(RDConfig.RDCodeDir,'Chem','SimpleEnum','test_data','bad_value2.rxn')\n\
-  >>> rxn = AllChem.ReactionFromRxnFile(testFile)\n\
-  >>> rxn.Initialize()\n\
-  >>> nWarn,nError,nReacts,nProds,reactantLabels = PreprocessReaction(rxn)\n\
-  Traceback (most recent call last):\n\
-    ...\n\
-  RuntimeError: KeyErrorException\n\
-  >>> testFile = os.path.join(RDConfig.RDCodeDir,'Chem','SimpleEnum','test_data','bad_value3.rxn')\n\
-  >>> rxn = AllChem.ReactionFromRxnFile(testFile)\n\
-  >>> rxn.Initialize()\n\
-  >>> nWarn,nError,nReacts,nProds,reactantLabels = PreprocessReaction(rxn)\n\
-  Traceback (most recent call last):\n\
-    ...\n\
-  RuntimeError: KeyErrorException\n\
-  >>> rxn = rdChemReactions.ChemicalReaction()\n\
-  >>> rxn.Initialize()\n\
-  >>> nWarn,nError,nReacts,nProds,reactantLabels = PreprocessReaction(rxn)\n\
-  >>> reactantLabels\n\
-  ()\n\
-  >>> reactantLabels == ()\n\
-  True\n\
-";
+      R"DOC(A function for preprocessing reactions with more specific queries.
+Queries are indicated by labels on atoms (molFileAlias property by default)
+When these labels are found, more specific queries are placed on the atoms.
+By default, the available quieries come from 
+  FilterCatalog.GetFlattenedFunctionalGroupHierarchy(True)n
+Sample Usage:
+  >>> from rdkit import Chem, RDConfig
+  >>> from rdkit.Chem import MolFromSmiles, AllChem
+  >>> from rdkit.Chem.rdChemReactions import PreprocessReaction
+  >>> import os
+  >>> testFile = os.path.join(RDConfig.RDCodeDir,'Chem','SimpleEnum','test_data','boronic1.rxn')
+  >>> rxn = AllChem.ReactionFromRxnFile(testFile)
+  >>> rxn.Initialize()
+  >>> nWarn,nError,nReacts,nProds,reactantLabels = PreprocessReaction(rxn)
+  >>> nWarn
+  0
+  >>> nError
+  0
+  >>> nReacts
+  2
+  >>> nProds
+  1
+  >>> reactantLabels
+  (((0, 'halogen.bromine.aromatic'),), ((1, 'boronicacid'),))
+
+If there are functional group labels in the input reaction (via atoms with molFileValue properties),
+the corresponding atoms will have queries added to them so that they only match such things. We can
+see this here:
+  >>> rxn = AllChem.ReactionFromRxnFile(testFile)
+  >>> rxn.Initialize()
+  >>> r1 = rxn.GetReactantTemplate(0)
+  >>> m1 = Chem.MolFromSmiles('CCBr')
+  >>> m2 = Chem.MolFromSmiles('c1ccccc1Br')
+  
+These both match because the reaction file itself just has R1-Br:
+  >>> m1.HasSubstructMatch(r1)
+  True
+  >>> m2.HasSubstructMatch(r1)
+  True
+
+After preprocessing, we only match the aromatic Br:
+  >>> d = PreprocessReaction(rxn)
+  >>> m1.HasSubstructMatch(r1)
+  False
+  >>> m2.HasSubstructMatch(r1)
+  True
+
+We also support or queries in the values field (separated by commas):
+  >>> testFile = os.path.join(RDConfig.RDCodeDir,'Chem','SimpleEnum','test_data','azide_reaction.rxn')
+  >>> rxn = AllChem.ReactionFromRxnFile(testFile)
+  >>> rxn.Initialize()
+  >>> reactantLabels = PreprocessReaction(rxn)[-1]
+  >>> reactantLabels
+  (((1, 'azide'),), ((1, 'carboxylicacid,acidchloride'),))
+  >>> m1 = Chem.MolFromSmiles('CC(=O)O')
+  >>> m2 = Chem.MolFromSmiles('CC(=O)Cl')
+  >>> m3 = Chem.MolFromSmiles('CC(=O)N')
+  >>> r2 = rxn.GetReactantTemplate(1)
+  >>> m1.HasSubstructMatch(r2)
+  True
+  >>> m2.HasSubstructMatch(r2)
+  True
+  >>> m3.HasSubstructMatch(r2)
+  False
+
+unrecognized final group types are returned as None:
+  >>> testFile = os.path.join(RDConfig.RDCodeDir,'Chem','SimpleEnum','test_data','bad_value1.rxn')
+  >>> rxn = AllChem.ReactionFromRxnFile(testFile)
+  >>> rxn.Initialize()
+  >>> nWarn,nError,nReacts,nProds,reactantLabels = PreprocessReaction(rxn)
+  Traceback (most recent call last):
+    ...
+  KeyError: 'boromicacid'
+
+One unrecognized group type in a comma-separated list makes the whole thing fail:
+  >>> testFile = os.path.join(RDConfig.RDCodeDir,'Chem','SimpleEnum','test_data','bad_value2.rxn')
+  >>> rxn = AllChem.ReactionFromRxnFile(testFile)
+  >>> rxn.Initialize()
+  >>> nWarn,nError,nReacts,nProds,reactantLabels = PreprocessReaction(rxn)
+  Traceback (most recent call last):
+    ...
+  KeyError: 'carboxylicacid,acidchlroide'
+  >>> testFile = os.path.join(RDConfig.RDCodeDir,'Chem','SimpleEnum','test_data','bad_value3.rxn')
+  >>> rxn = AllChem.ReactionFromRxnFile(testFile)
+  >>> rxn.Initialize()
+  >>> nWarn,nError,nReacts,nProds,reactantLabels = PreprocessReaction(rxn)
+  Traceback (most recent call last):
+    ...
+  KeyError: 'carboxyliccaid,acidchloride'
+  >>> rxn = rdChemReactions.ChemicalReaction()
+  >>> rxn.Initialize()
+  >>> nWarn,nError,nReacts,nProds,reactantLabels = PreprocessReaction(rxn)
+  >>> reactantLabels
+  ()
+  >>> reactantLabels == ()
+  True
+)DOC";
 
   python::def(
       "PreprocessReaction", RDKit::PreprocessReaction,
@@ -971,7 +1044,33 @@ Sample Usage:\n\
       RDKit::RxnOps::MatchOnlyAtRgroupsAdjustParams,
       "Only match at the specified rgroup locations in the reactant templates");
 
-  std::string docstring = "feed me";
+  docString =
+      R"DOC(Does some sanitization of the reactant and product templates of a reaction.
+
+    - The reaction is modified in place.
+    - If sanitization fails, an exception will be thrown unless catchErrors is set
+
+  ARGUMENTS:
+
+    - rxn: the reaction to be modified
+    - sanitizeOps: (optional) reaction sanitization operations to be carried out
+      these should be constructed by or'ing together the
+      operations in rdkit.Chem.rdChemReactions.SanitizeFlags
+    - optional adjustment parameters for changing the meaning of the substructure
+      matching done in the templates.  The default is 
+      rdkit.Chem.rdChemReactions.DefaultRxnAdjustParams which aromatizes
+      kekule structures if possible.
+    - catchErrors: (optional) if provided, instead of raising an exception
+      when sanitization fails (the default behavior), the 
+      first operation that failed (as defined in rdkit.Chem.rdChemReactions.SanitizeFlags)
+      is returned. Zero is returned on success.
+
+  The operations carried out by default are:
+    1) fixRGroups(): sets R group labels on mapped dummy atoms when possible
+    2) fixAtomMaps(): attempts to set atom maps on unmapped R groups
+    3) adjustTemplate(): calls adjustQueryProperties() on all reactant templates
+    4) fixHs(): merges explicit Hs in the reactant templates that don't map to heavy atoms
+)DOC";
   python::def("SanitizeRxn", RDKit::sanitizeReaction,
               (python::arg("rxn"),
                python::arg("sanitizeOps") =

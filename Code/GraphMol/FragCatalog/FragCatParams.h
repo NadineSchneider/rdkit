@@ -7,7 +7,7 @@
 //  which is included in the file license.txt, found at the root
 //  of the RDKit source tree.
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef _RD_FRAG_CAT_PARAMS_H_
 #define _RD_FRAG_CAT_PARAMS_H_
 
@@ -18,7 +18,7 @@
 
 namespace RDKit {
 class ROMol;
-typedef std::vector<boost::shared_ptr<ROMol> > MOL_SPTR_VECT;
+typedef std::vector<boost::shared_ptr<ROMol>> MOL_SPTR_VECT;
 
 //! container for user parameters used to create a fragment catalog
 class RDKIT_FRAGCATALOG_EXPORT FragCatParams : public RDCatalog::CatalogParams {
@@ -65,7 +65,9 @@ class RDKIT_FRAGCATALOG_EXPORT FragCatParams : public RDCatalog::CatalogParams {
   void setTolerance(double val) { d_tolerance = val; }
 
   //! returns our number of functional groups
-  unsigned int getNumFuncGroups() const { return static_cast<unsigned int>(d_funcGroups.size()); }
+  unsigned int getNumFuncGroups() const {
+    return static_cast<unsigned int>(d_funcGroups.size());
+  }
 
   //! returns our std::vector of functional groups
   const MOL_SPTR_VECT &getFuncGroups() const;
@@ -87,6 +89,6 @@ class RDKIT_FRAGCATALOG_EXPORT FragCatParams : public RDCatalog::CatalogParams {
 
   MOL_SPTR_VECT d_funcGroups;
 };
-}
+}  // namespace RDKit
 
 #endif

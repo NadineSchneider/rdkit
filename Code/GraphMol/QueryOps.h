@@ -12,13 +12,15 @@
 /*!
     \brief Includes a bunch of functionality for handling Atom and Bond queries.
 */
-#include <RDBoost/export.h>
-#ifndef _RD_QUERY_OPS_H
-#define _RD_QUERY_OPS_H
+#include <RDGeneral/export.h>
+#ifndef RD_QUERY_OPS_H
+#define RD_QUERY_OPS_H
 
 #include <GraphMol/RDKitBase.h>
 #include <Query/QueryObjects.h>
 #include <Query/Query.h>
+#include <DataStructs/BitVects.h>
+#include <DataStructs/BitOps.h>
 
 #ifdef RDK_THREADSAFE_SSS
 #include <mutex>
@@ -78,19 +80,28 @@ static inline int queryAtomExplicitDegree(Atom const *at) {
 static inline int queryAtomTotalDegree(Atom const *at) {
   return at->getTotalDegree();
 };
+//! D and T are treated as "non-hydrogen" here
 static inline int queryAtomNonHydrogenDegree(Atom const *at) {
-  return at->getTotalDegree() - at->getTotalNumHs(true);
-}
+  int res = 0;
+  for (const auto &nbri :
+       boost::make_iterator_range(at->getOwningMol().getAtomNeighbors(at))) {
+    const auto nbr = at->getOwningMol()[nbri];
+    if (nbr->getAtomicNum() != 1 || nbr->getIsotope() > 1) {
+      res++;
+    }
+  }
+
+  return res;
+};
+//! D and T are not treated as heavy atoms here
 static inline int queryAtomHeavyAtomDegree(Atom const *at) {
   int heavyDegree = 0;
-  ROMol::ADJ_ITER nbrIdx, endNbrs;
-  boost::tie(nbrIdx, endNbrs) = at->getOwningMol().getAtomNeighbors(at);
-  while (nbrIdx != endNbrs) {
-    const Atom *nbr = at->getOwningMol()[*nbrIdx];
+  for (const auto &nbri :
+       boost::make_iterator_range(at->getOwningMol().getAtomNeighbors(at))) {
+    const auto nbr = at->getOwningMol()[nbri];
     if (nbr->getAtomicNum() > 1) {
       heavyDegree++;
     }
-    ++nbrIdx;
   }
 
   return heavyDegree;
@@ -111,21 +122,49 @@ static inline int queryAtomExplicitValence(Atom const *at) {
   return at->getExplicitValence() - at->getNumExplicitHs();
 };
 static inline int queryAtomTotalValence(Atom const *at) {
-  return at->getExplicitValence() + at->getImplicitValence();
+  return at->getTotalValence();
 };
 static inline int queryAtomUnsaturated(Atom const *at) {
-  return static_cast<int>(at->getDegree()) < at->getExplicitValence();
+  return at->getTotalDegree() < at->getTotalValence();
 };
 static inline int queryAtomNum(Atom const *at) { return at->getAtomicNum(); };
+static inline int makeAtomType(int atomic_num, bool aromatic) {
+  return atomic_num + 1000 * static_cast<int>(aromatic);
+}
+static inline void parseAtomType(int val, int &atomic_num, bool &aromatic) {
+  if (val > 1000) {
+    aromatic = true;
+    atomic_num = val - 1000;
+  } else {
+    aromatic = false;
+    atomic_num = val;
+  }
+}
+static inline bool getAtomTypeIsAromatic(int val) {
+  if (val > 1000) return true;
+  return false;
+}
+static inline int getAtomTypeAtomicNum(int val) {
+  if (val > 1000) return val - 1000;
+  return val;
+}
+
+static inline int queryAtomType(Atom const *at) {
+  return makeAtomType(at->getAtomicNum(), at->getIsAromatic());
+};
 const int massIntegerConversionFactor = 1000;
 static inline int queryAtomMass(Atom const *at) {
-  return static_cast<int>(round(massIntegerConversionFactor * at->getMass()));
+  return static_cast<int>(
+      std::round(massIntegerConversionFactor * at->getMass()));
 };
 static inline int queryAtomIsotope(Atom const *at) {
   return static_cast<int>(at->getIsotope());
 };
 static inline int queryAtomFormalCharge(Atom const *at) {
   return static_cast<int>(at->getFormalCharge());
+};
+static inline int queryAtomNegativeFormalCharge(Atom const *at) {
+  return static_cast<int>(-1 * at->getFormalCharge());
 };
 static inline int queryAtomHybridization(Atom const *at) {
   return at->getHybridization();
@@ -205,6 +244,15 @@ RDKIT_GRAPHMOL_EXPORT unsigned int queryAtomAllBondProduct(Atom const *at);
 
 static inline int queryBondOrder(Bond const *bond) {
   return static_cast<int>(bond->getBondType());
+};
+static inline int queryBondIsSingleOrAromatic(Bond const *bond) {
+  return static_cast<int>(bond->getBondType() == Bond::SINGLE ||
+                          bond->getBondType() == Bond::AROMATIC);
+};
+static inline int queryBondIsSingleOrDoubleOrAromatic(Bond const *bond) {
+  return static_cast<int>(bond->getBondType() == Bond::SINGLE ||
+                          bond->getBondType() == Bond::DOUBLE ||
+                          bond->getBondType() == Bond::AROMATIC);
 };
 static inline int queryBondDir(Bond const *bond) {
   return static_cast<int>(bond->getBondDir());
@@ -307,6 +355,16 @@ T *makeAtomNumQuery(int what, const std::string &descr) {
 }
 //! \overload
 RDKIT_GRAPHMOL_EXPORT ATOM_EQUALS_QUERY *makeAtomNumQuery(int what);
+
+//! returns a Query for matching atomic number and aromaticity
+template <class T>
+T *makeAtomTypeQuery(int num, int aromatic, const std::string &descr) {
+  return makeAtomSimpleQuery<T>(makeAtomType(num, aromatic), queryAtomType,
+                                descr);
+}
+//! \overload
+RDKIT_GRAPHMOL_EXPORT ATOM_EQUALS_QUERY *makeAtomTypeQuery(int num,
+                                                           int aromatic);
 
 //! returns a Query for matching implicit valence
 template <class T>
@@ -421,6 +479,16 @@ T *makeAtomFormalChargeQuery(int what, const std::string &descr) {
 //! \overload
 RDKIT_GRAPHMOL_EXPORT ATOM_EQUALS_QUERY *makeAtomFormalChargeQuery(int what);
 
+//! returns a Query for matching negative formal charges (i.e. a query val of 1
+//! matches a formal charge of -1)
+template <class T>
+T *makeAtomNegativeFormalChargeQuery(int what, const std::string &descr) {
+  return makeAtomSimpleQuery<T>(what, queryAtomNegativeFormalCharge, descr);
+}
+//! \overload
+RDKIT_GRAPHMOL_EXPORT ATOM_EQUALS_QUERY *makeAtomNegativeFormalChargeQuery(
+    int what);
+
 //! returns a Query for matching hybridization
 template <class T>
 T *makeAtomHybridizationQuery(int what, const std::string &descr) {
@@ -435,7 +503,8 @@ T *makeAtomNumRadicalElectronsQuery(int what, const std::string &descr) {
   return makeAtomSimpleQuery<T>(what, queryAtomNumRadicalElectrons, descr);
 }
 //! \overload
-RDKIT_GRAPHMOL_EXPORT ATOM_EQUALS_QUERY *makeAtomNumRadicalElectronsQuery(int what);
+RDKIT_GRAPHMOL_EXPORT ATOM_EQUALS_QUERY *makeAtomNumRadicalElectronsQuery(
+    int what);
 
 //! returns a Query for matching whether or not chirality has been set on the
 //! atom
@@ -501,7 +570,7 @@ RDKIT_GRAPHMOL_EXPORT ATOM_EQUALS_QUERY *makeAtomRingBondCountQuery(int what);
 //! returns a Query for matching generic A atoms (heavy atoms)
 RDKIT_GRAPHMOL_EXPORT ATOM_EQUALS_QUERY *makeAAtomQuery();
 //! returns a Query for matching generic AH atoms (any atom)
-RDKIT_GRAPHMOL_EXPORT ATOM_EQUALS_QUERY *makeAHAtomQuery();
+RDKIT_GRAPHMOL_EXPORT ATOM_NULL_QUERY *makeAHAtomQuery();
 //! returns a Query for matching generic Q atoms (heteroatoms)
 RDKIT_GRAPHMOL_EXPORT ATOM_OR_QUERY *makeQAtomQuery();
 //! returns a Query for matching generic QH atoms (heteroatom or H)
@@ -529,7 +598,8 @@ T *makeAtomNumHeteroatomNbrsQuery(int what, const std::string &descr) {
   return makeAtomSimpleQuery<T>(what, queryAtomNumHeteroatomNbrs, descr);
 }
 //! \overload
-RDKIT_GRAPHMOL_EXPORT ATOM_EQUALS_QUERY *makeAtomNumHeteroatomNbrsQuery(int what);
+RDKIT_GRAPHMOL_EXPORT ATOM_EQUALS_QUERY *makeAtomNumHeteroatomNbrsQuery(
+    int what);
 
 //! returns a Query for matching atoms that have heteroatom neighbors
 template <class T>
@@ -546,7 +616,8 @@ T *makeAtomNumAliphaticHeteroatomNbrsQuery(int what, const std::string &descr) {
                                 descr);
 }
 //! \overload
-RDKIT_GRAPHMOL_EXPORT ATOM_EQUALS_QUERY *makeAtomNumAliphaticHeteroatomNbrsQuery(int what);
+RDKIT_GRAPHMOL_EXPORT ATOM_EQUALS_QUERY *
+makeAtomNumAliphaticHeteroatomNbrsQuery(int what);
 
 //! returns a Query for matching atoms that have heteroatom neighbors
 template <class T>
@@ -554,12 +625,29 @@ T *makeAtomHasAliphaticHeteroatomNbrsQuery(const std::string &descr) {
   return makeAtomSimpleQuery<T>(1, queryAtomHasAliphaticHeteroatomNbrs, descr);
 }
 //! \overload
-RDKIT_GRAPHMOL_EXPORT ATOM_EQUALS_QUERY *makeAtomHasAliphaticHeteroatomNbrsQuery();
+RDKIT_GRAPHMOL_EXPORT ATOM_EQUALS_QUERY *
+makeAtomHasAliphaticHeteroatomNbrsQuery();
+
+//! returns a Query for matching the number of non-hydrogen neighbors
+template <class T>
+T *makeAtomNonHydrogenDegreeQuery(int what, const std::string &descr) {
+  return makeAtomSimpleQuery<T>(what, queryAtomNonHydrogenDegree, descr);
+}
+//! \overload
+RDKIT_GRAPHMOL_EXPORT ATOM_EQUALS_QUERY *makeAtomNonHydrogenDegreeQuery(
+    int what);
 
 //! returns a Query for matching bond orders
-RDKIT_GRAPHMOL_EXPORT BOND_EQUALS_QUERY *makeBondOrderEqualsQuery(Bond::BondType what);
+RDKIT_GRAPHMOL_EXPORT BOND_EQUALS_QUERY *makeBondOrderEqualsQuery(
+    Bond::BondType what);
+//! returns a Query for unspecified SMARTS bonds
+RDKIT_GRAPHMOL_EXPORT BOND_EQUALS_QUERY *makeSingleOrAromaticBondQuery();
+//! returns a Query for tautomeric bonds
+RDKIT_GRAPHMOL_EXPORT BOND_EQUALS_QUERY *
+makeSingleOrDoubleOrAromaticBondQuery();
 //! returns a Query for matching bond directions
-RDKIT_GRAPHMOL_EXPORT BOND_EQUALS_QUERY *makeBondDirEqualsQuery(Bond::BondDir what);
+RDKIT_GRAPHMOL_EXPORT BOND_EQUALS_QUERY *makeBondDirEqualsQuery(
+    Bond::BondDir what);
 //! returns a Query for matching bonds with stereo set
 RDKIT_GRAPHMOL_EXPORT BOND_EQUALS_QUERY *makeBondHasStereoQuery();
 //! returns a Query for matching ring bonds
@@ -587,7 +675,8 @@ static inline int queryAtomRingMembership(Atom const *at) {
 // incorrect code if we don't do this... so let's do it.
 typedef Atom const *ConstAtomPtr;
 
-class RDKIT_GRAPHMOL_EXPORT AtomRingQuery : public Queries::EqualityQuery<int, ConstAtomPtr, true> {
+class RDKIT_GRAPHMOL_EXPORT AtomRingQuery
+    : public Queries::EqualityQuery<int, ConstAtomPtr, true> {
  public:
   AtomRingQuery() : Queries::EqualityQuery<int, ConstAtomPtr, true>(-1) {
     // default is to just do a number of rings query:
@@ -630,8 +719,7 @@ class RDKIT_GRAPHMOL_EXPORT AtomRingQuery : public Queries::EqualityQuery<int, C
 class RDKIT_GRAPHMOL_EXPORT RecursiveStructureQuery
     : public Queries::SetQuery<int, Atom const *, true> {
  public:
-  RecursiveStructureQuery()
-      : Queries::SetQuery<int, Atom const *, true>(), d_serialNumber(0) {
+  RecursiveStructureQuery() : Queries::SetQuery<int, Atom const *, true>() {
     setDataFunc(getAtIdx);
     setDescription("RecursiveStructure");
   };
@@ -683,7 +771,7 @@ class RDKIT_GRAPHMOL_EXPORT RecursiveStructureQuery
 #endif
  private:
   boost::shared_ptr<const ROMol> dp_queryMol;
-  unsigned int d_serialNumber;
+  unsigned int d_serialNumber{0};
 };
 
 template <typename T>
@@ -712,7 +800,7 @@ class HasPropQuery : public Queries::EqualityQuery<int, TargetPtr, true> {
       : Queries::EqualityQuery<int, TargetPtr, true>(), propname(v) {
     // default is to just do a number of rings query:
     this->setDescription("AtomHasProp");
-    this->setDataFunc(0);
+    this->setDataFunc(nullptr);
   };
 
   virtual bool Match(const TargetPtr what) const {
@@ -765,7 +853,7 @@ class HasPropWithValueQuery
         tolerance(tol) {
     // default is to just do a number of rings query:
     this->setDescription("HasPropWithValue");
-    this->setDataFunc(0);
+    this->setDataFunc(nullptr);
   };
 
   virtual bool Match(const TargetPtr what) const {
@@ -774,9 +862,9 @@ class HasPropWithValueQuery
       try {
         T atom_val = what->template getProp<T>(propname);
         res = Queries::queryCmp(atom_val, this->val, this->tolerance) == 0;
-      } catch (KeyErrorException e) {
+      } catch (KeyErrorException &) {
         res = false;
-      } catch (boost::bad_any_cast) {
+      } catch (boost::bad_any_cast &) {
         res = false;
       }
 #ifdef __GNUC__
@@ -829,7 +917,7 @@ class HasPropWithValueQuery<TargetPtr, std::string>
     RDUNUSED_PARAM(tol);
     // default is to just do a number of rings query:
     this->setDescription("HasPropWithValue");
-    this->setDataFunc(0);
+    this->setDataFunc(nullptr);
   };
 
   virtual bool Match(const TargetPtr what) const {
@@ -838,9 +926,9 @@ class HasPropWithValueQuery<TargetPtr, std::string>
       try {
         std::string atom_val = what->template getProp<std::string>(propname);
         res = atom_val == this->val;
-      } catch (KeyErrorException) {
+      } catch (KeyErrorException &) {
         res = false;
-      } catch (boost::bad_any_cast) {
+      } catch (boost::bad_any_cast &) {
         res = false;
       }
 #ifdef __GNUC__
@@ -875,15 +963,97 @@ class HasPropWithValueQuery<TargetPtr, std::string>
   }
 };
 
+template <class TargetPtr>
+class HasPropWithValueQuery<TargetPtr, ExplicitBitVect>
+    : public Queries::EqualityQuery<int, TargetPtr, true> {
+  std::string propname;
+  ExplicitBitVect val;
+  float tol{0.0};
+
+ public:
+  HasPropWithValueQuery()
+      : Queries::EqualityQuery<int, TargetPtr, true>(), propname(), val() {
+    this->setDescription("HasPropWithValue");
+    this->setDataFunc(0);
+  };
+
+  explicit HasPropWithValueQuery(const std::string &prop,
+                                 const ExplicitBitVect &v, float tol = 0.0)
+      : Queries::EqualityQuery<int, TargetPtr, true>(),
+        propname(prop),
+        val(v),
+        tol(tol) {
+    this->setDescription("HasPropWithValue");
+    this->setDataFunc(nullptr);
+  };
+
+  virtual bool Match(const TargetPtr what) const {
+    bool res = what->hasProp(propname);
+    if (res) {
+      try {
+        const ExplicitBitVect &bv =
+            what->template getProp<const ExplicitBitVect &>(propname);
+        const double tani = TanimotoSimilarity(val, bv);
+        res = (1.0 - tani) <= tol;
+      } catch (KeyErrorException &) {
+        res = false;
+      } catch (boost::bad_any_cast &) {
+        res = false;
+      }
+#ifdef __GNUC__
+#if (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 2))
+      catch (...) {
+        // catch all -- this is currently necessary to
+        //  trap some bugs in boost+gcc configurations
+        //  Normally, this is not the correct thing to
+        //  do, but the only exception above is due
+        //  to the boost any_cast which is trapped
+        //  by the Boost python wrapper when it shouldn't
+        //  be.
+        res = false;
+      }
+#endif
+#endif
+    }
+    if (this->getNegation()) {
+      res = !res;
+    }
+    return res;
+  }
+
+  //! returns a copy of this query
+  Queries::Query<int, TargetPtr, true> *copy() const {
+    HasPropWithValueQuery<TargetPtr, ExplicitBitVect> *res =
+        new HasPropWithValueQuery<TargetPtr, ExplicitBitVect>(
+            this->propname, this->val, this->tol);
+    res->setNegation(this->getNegation());
+    res->d_description = this->d_description;
+    return res;
+  }
+};
+
 template <class Target, class T>
 Queries::EqualityQuery<int, const Target *, true> *makePropQuery(
     const std::string &propname, const T &val, const T &tolerance = T()) {
   return new HasPropWithValueQuery<const Target *, T>(propname, val, tolerance);
 }
 
+template <class Target>
+Queries::EqualityQuery<int, const Target *, true> *makePropQuery(
+    const std::string &propname, const ExplicitBitVect &val,
+    float tolerance = 0.0) {
+  return new HasPropWithValueQuery<const Target *, ExplicitBitVect>(
+      propname, val, tolerance);
+}
+
 RDKIT_GRAPHMOL_EXPORT bool isComplexQuery(const Bond *b);
 RDKIT_GRAPHMOL_EXPORT bool isComplexQuery(const Atom *a);
 RDKIT_GRAPHMOL_EXPORT bool isAtomAromatic(const Atom *a);
-};
 
+namespace QueryOps {
+RDKIT_GRAPHMOL_EXPORT void completeMolQueries(
+    RWMol *mol, unsigned int magicVal = 0xDEADBEEF);
+RDKIT_GRAPHMOL_EXPORT Atom *replaceAtomWithQueryAtom(RWMol *mol, Atom *atom);
+}  // namespace QueryOps
+}  // namespace RDKit
 #endif

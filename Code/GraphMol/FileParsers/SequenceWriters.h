@@ -7,7 +7,7 @@
 //  which is included in the file license.txt, found at the root
 //  of the RDKit source tree.
 //
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #ifndef _RD_SEQUENCEWRITE_H_
 #define _RD_SEQUENCEWRITE_H_
 #include <string>
@@ -42,6 +42,6 @@ RDKIT_FILEPARSERS_EXPORT std::string MolToFASTA(const ROMol &mol);
  *structures
  */
 RDKIT_FILEPARSERS_EXPORT std::string MolToHELM(const ROMol &mol);
-}
+}  // namespace RDKit
 
 #endif

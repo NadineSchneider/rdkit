@@ -8,12 +8,13 @@
 //  of the RDKit source tree.
 //
 
-#include <RDBoost/export.h>
+#include <RDGeneral/export.h>
 #include "StructChecker.h"
 
 namespace RDKit {
 namespace StructureCheck {
 // used in unit test
-RDKIT_STRUCTCHECKER_EXPORT bool StringToAugmentedAtom(const char *str, AugmentedAtom &aa);
-}
-}
+RDKIT_STRUCTCHECKER_EXPORT bool StringToAugmentedAtom(const char *str,
+                                                      AugmentedAtom &aa);
+}  // namespace StructureCheck
+}  // namespace RDKit
